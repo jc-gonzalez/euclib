@@ -1,0 +1,7 @@
+.DS_Store
+*.pyc
+.idea/*
+.vcode/*
+ares/pyares/*
+*.zip
+file.log
