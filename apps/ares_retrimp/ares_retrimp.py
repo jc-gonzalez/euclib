@@ -11,7 +11,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os, sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '../..')))
+_filedir_ = os.path.dirname(__file__)
+_appsdir_, _ = os.path.split(_filedir_)
+_basedir_, _ = os.path.split(_appsdir_)
+sys.path.insert(0, os.path.abspath(os.path.join(_filedir_, _basedir_, _appsdir_)))
 
 from tkinter import *
 
@@ -21,18 +24,44 @@ STRING = str
 
 from appgui import App
 
-# details
+import logging
+logger = logging.getLogger()
+
+
+VERSION = '0.0.2'
+
 __author__ = "J C Gonzalez"
 __copyright__ = "Copyright 2015-2019, J C Gonzalez"
 __license__ = "LGPL 3.0"
-__version__ = "0.0.2"
+__version__ = VERSION
 __maintainer__ = "J C Gonzalez"
 __email__ = "jcgonzalez@sciops.esa.int"
 __status__ = "Development"
 #__url__ = ""
 
 
+def configureLogs():
+    logger.setLevel(logging.DEBUG)
+
+    # Create handlers
+    c_handler = logging.StreamHandler()
+    c_handler.setLevel(logging.INFO)
+
+    # Create formatters and add it to handlers
+    #c_format = logging.Formatter('%(asctime)s %(levelname).1s %(name)s %(module)s:%(lineno)d %(message)s',
+    #                             datefmt='%y-%m-%d %H:%M:%S')
+    c_format = logging.Formatter('%(asctime)s %(levelname).1s %(module)s:%(lineno)d %(message)s')
+    c_handler.setFormatter(c_format)
+
+    # Add handlers to the logger
+    logger.addHandler(c_handler)
+    for lname in os.environ['LOGGING_MODULES'].split(':'):
+        lgr = logging.getLogger(lname)
+        if not lgr.handlers: lgr.addHandler(c_handler)
+
+
 def main():
+    configureLogs()
     root = Tk()
     app = App(parent=root)
     root.mainloop()

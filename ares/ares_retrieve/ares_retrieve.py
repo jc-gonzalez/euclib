@@ -25,23 +25,26 @@ Usage example:
   $ python test3-jc.py -c ./cfg.ini -f 1 -t 2 -F 2013 354 0 0 0 -T 2013 354 1 0 0
 '''
 
-
 from astropy.table import Table
 from astropy.io import fits
 
 from utime.utime import *
 
-import pyarex as pa
+import ares.pyares as pa
 #import pandas as pd
 import numpy as np
 #import fitsio
 #import matplotlib.pyplot as plt
 
 import os, sys, errno
-import logging
 import argparse
 import time
 import gzip
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 VERSION = '0.0.1'
@@ -51,13 +54,6 @@ __version__ = VERSION
 __email__ = "jcgonzalez@sciops.esa.int"
 __status__ = "Prototype"  # Prototype | Development | Production
 
-
-# Change INFO for DEBUG to get debug messages
-log_level = logging.DEBUG
-
-# Set up logging information
-format_string = '%(asctime)s %(levelname).1s %(message)s'
-logging.basicConfig(level=log_level, format=format_string, stream=sys.stderr)
 
 # Default configuration
 DefaultConfig = 'pyarex.ini'
@@ -177,7 +173,7 @@ class Retriever(object):
         else:
             os.environ['PYAREX_INI_FILE'] = cfg_file
 
-        logging.info('Reading retrieval script config. file {0}'.format(cfg_file))
+        logger.info('Reading retrieval script config. file {0}'.format(cfg_file))
 
         self.rqst_mode = rqst_mode
 
@@ -207,19 +203,19 @@ class Retriever(object):
 
         self.outdir = output_dir
         self.file_tpl = self.create_actual_file_tpl(file_tpl)
-        print(self.generate_filename(self.file_tpl))
+        #print(self.generate_filename(self.file_tpl))
         self.file_type = file_type
 
-        logging.info('-'*60)
-        logging.info("Retrieving samples for parameters with parameter ids in the range {0}:{1}"
+        logger.info('-'*60)
+        logger.info("Retrieving samples for parameters with parameter ids in the range {0}:{1}"
                      .format(from_pid, to_pid))
-        logging.info("from the date {0}.{1}.{2:02d}:{3:02d}:{4:06.3f}"
+        logger.info("from the date {0}.{1}.{2:02d}:{3:02d}:{4:06.3f}"
                      .format(self.year1, self.doy1, self.hour1, self.min1, self.sec1))
-        logging.info("to the date {0}.{1}.{2:02d}:{3:02d}:{4:06.3f}"
+        logger.info("to the date {0}.{1}.{2:02d}:{3:02d}:{4:06.3f}"
                      .format(self.year2, self.doy2, self.hour2, self.min2, self.sec2))
-        logging.info("and storing the data in FITS files, in blocks of {0} param.ids"
+        logger.info("and storing the data in FITS files, in blocks of {0} param.ids"
                      .format(self.pid_blk))
-        logging.info('-'*60)
+        logger.info('-'*60)
 
     def run(self):
         '''
@@ -293,8 +289,8 @@ class Retriever(object):
                         var_name = s.get_name()
                         var_type = s.get_type()
                         if var_name != param_names[i]:
-                            logging.warning("ERROR: Param. name does not match with expectation!")
-                        logging.info('Generating table {} of {} for PID {} - {} (type={})'
+                            logger.warning("ERROR: Param. name does not match with expectation!")
+                        logger.info('Generating table {} of {} for PID {} - {} (type={})'
                                      .format(i + 1, self.pid_blk, pid, var_name, var_type))
                         start = False
 
@@ -334,7 +330,7 @@ class Retriever(object):
             file_name = '{}/{}.fits'.format(self.outdir, self.generate_filename(self.file_tpl))
             self.save_to_fits(hdul, file_name)
             gen_files.append(file_name)
-            logging.info('Saved file {}'.format(file_name))
+            logger.info('Saved file {}'.format(file_name))
 
             end_time = time.time()
 
@@ -350,13 +346,13 @@ class Retriever(object):
 
         full_time_total = end_time - start_time
 
-        logging.info("Data retrieval:   {:10.3f} s".format(retr_time_total))
-        logging.info("Data conversion:  {:10.3f} s".format(conv_time_total))
-        logging.info("Total exec. time: {:10.3f} s".format(full_time_total))
+        logger.info("Data retrieval:   {:10.3f} s".format(retr_time_total))
+        logger.info("Data conversion:  {:10.3f} s".format(conv_time_total))
+        logger.info("Total exec. time: {:10.3f} s".format(full_time_total))
         if len(param_names_invalid) > 0:
-            logging.info("The following parameters could not be converted:")
+            logger.info("The following parameters could not be converted:")
             for p in param_names_invalid.keys():
-                logging.info('{}: "{}"'.format(p, param_names_invalid[p]))
+                logger.info('{}: "{}"'.format(p, param_names_invalid[p]))
 
         return (retr_time_total, conv_time_total, full_time_total, param_names_invalid, gen_files)
 
@@ -417,8 +413,8 @@ class Retriever(object):
                     var_name = s.get_name()
                     var_type = s.get_type()
                     if var_name != pname:
-                        logging.warning("ERROR: Param. name does not match with expectation!")
-                    logging.info('Generating table for PID {} - {} (type={})'
+                        logger.warning("ERROR: Param. name does not match with expectation!")
+                    logger.info('Generating table for PID {} - {} (type={})'
                                  .format(pid, var_name, var_type))
                     start = False
 
@@ -457,7 +453,7 @@ class Retriever(object):
             file_name = '{}/{}.fits'.format(self.outdir, self.generate_filename(self.file_tpl))
             self.save_to_fits(hdul, file_name)
             gen_files.append(file_name)
-            logging.info('Saved file {}'.format(file_name))
+            logger.info('Saved file {}'.format(file_name))
 
             i = i + 1
 
@@ -468,13 +464,13 @@ class Retriever(object):
 
         full_time_total = end_time - start_time
 
-        logging.info("Data retrieval:   {:10.3f} s".format(retr_time_total))
-        logging.info("Data conversion:  {:10.3f} s".format(conv_time_total))
-        logging.info("Total exec. time: {:10.3f} s".format(full_time_total))
+        logger.info("Data retrieval:   {:10.3f} s".format(retr_time_total))
+        logger.info("Data conversion:  {:10.3f} s".format(conv_time_total))
+        logger.info("Total exec. time: {:10.3f} s".format(full_time_total))
         if len(param_names_invalid) > 0:
-            logging.info("The following parameters could not be converted:")
+            logger.info("The following parameters could not be converted:")
             for p in param_names_invalid.keys():
-                logging.info('{}: "{}"'.format(p, param_names_invalid[p]))
+                logger.info('{}: "{}"'.format(p, param_names_invalid[p]))
 
         return (retr_time_total, conv_time_total, full_time_total, param_names_invalid, gen_files)
 

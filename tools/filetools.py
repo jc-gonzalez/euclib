@@ -29,7 +29,19 @@ def getContentOfFile(file=None):
     else:
         return ''
 
-def run(command):
+def createDirIfNotExist(the_dir=None):
+    '''
+    Creates a directory if it does not yet exist
+    '''
+    if the_dir:
+        if not os.path.exists(the_dir):
+            try:
+                os.makedirs(the_dir)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+
+def runCommandAsSubprocess(command):
     '''
     Executes a command and returns the list of lines in stdout
     '''
@@ -47,18 +59,6 @@ def run(command):
     return_code = popen.wait()
     if return_code:
         raise subprocess.CalledProcessError(return_code, command)
-
-def createDirIfNotExist(the_dir=None):
-    '''
-    Creates a directory if it does not yet exist
-    '''
-    if the_dir:
-        if not os.path.exists(the_dir):
-            try:
-                os.makedirs(the_dir)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
 
 
 if __name__ == '__main__':

@@ -8,11 +8,16 @@ from shutil import copy
 from pprint import pprint
 
 import os, sys
-import logging
 import re
 import time
 import glob
 import json
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
+
 
 VERSION = '0.0.1'
 
@@ -20,14 +25,6 @@ __author__ = "jcgonzalez"
 __version__ = VERSION
 __email__ = "jcgonzalez@sciops.esa.int"
 __status__ = "Prototype" # Prototype | Development | Production
-
-
-# Change INFO for DEBUG to get debug messages
-log_level = logging.DEBUG
-
-# Set up logging information
-format_string = '%(asctime)s %(levelname).1s %(message)s'
-logging.basicConfig(level=log_level, format=format_string, stream=sys.stderr)
 
 
 #----------------------------------------------------------------------------
@@ -82,8 +79,8 @@ class Importer(object):
         if not cfg_file:
             this_script_dir = os.path.dirname(os.path.realpath(__file__))
             cfg_file = this_script_dir + '/../' + Importer.AresFileTypesCfgFile
-        
-        logging.info('Reading import script config. file {0}'.format(cfg_file))
+
+        logger.info('Reading import script config. file {0}'.format(cfg_file))
         try:
             with open(cfg_file) as fcfg:
                 try:
@@ -97,7 +94,7 @@ class Importer(object):
             self.error_msg('Import script config. file not found in {0}'
                       .format(cfg_file))
 
-        logging.info('-'*60)
+        logger.info('-'*60)
 
         if ares_runtime:
             self.ares_runtime = ares_runtime
@@ -106,12 +103,12 @@ class Importer(object):
             self.error_msg('ARES system runtime folder {0} does not exist'
                       .format(self.ares_runtime))
 
-        logging.info('ARES system runtime folder is {0}'.format(self.ares_runtime))
+        logger.info('ARES system runtime folder is {0}'.format(self.ares_runtime))
         self.ares_import = self.ares_runtime + '/import'
-        logging.info('ARES import folder is {0}'.format(self.ares_import))
+        logger.info('ARES import folder is {0}'.format(self.ares_import))
 
         self.admin_server_log = self.ares_runtime + '/AdminServer/AdminServer.log'
-        logging.info('Monitoring ARES Server log file {0}'.format(self.admin_server_log))
+        logger.info('Monitoring ARES Server log file {0}'.format(self.admin_server_log))
 
         # Evaluate input data files
         if data_dir:
@@ -126,7 +123,7 @@ class Importer(object):
             self.input_files = []
             self.error_msg('No input files provided.')
 
-        logging.debug(self.input_files)
+        logger.debug(self.input_files)
         self.num_of_files = len(self.input_files)
 
         if self.num_of_files < 1:
@@ -136,16 +133,16 @@ class Importer(object):
             self.import_dir = import_dir
         else:
             self.import_dir = 'parameter'
-            
+
         if not os.path.isdir('{}/{}'.format(self.ares_import, self.import_dir)):
             self.error_msg('Location for importing input files {0} does not exist'
                            .format(self.import_dir))
 
     def error_msg(self, msg):
         if self.batch_mode:
-            logging.error(msg)
+            logger.error(msg)
         else:
-            logging.fatal(msg)
+            logger.fatal(msg)
             os._exit(1)
 
     def set_predef_type_patterns(self, patdict):
@@ -241,14 +238,14 @@ class Importer(object):
 
         fimport_dir = self.import_dir
         fimport_dir = fimport_dir.replace('parameter', 'paramdef')
-        logging.info('Import folder for description file is {0}'.format(fimport_dir))
+        logger.info('Import folder for description file is {0}'.format(fimport_dir))
 
         fname = self.desc_file
-        logging.info('Preparing import of description file: {0}'
+        logger.info('Preparing import of description file: {0}'
                      .format(fname))
 
         import_dir = self.ares_import + '/' + fimport_dir
-        logging.info('Data type: {0} (folder: {1})'.format('DESC_FILE',import_dir))
+        logger.info('Data type: {0} (folder: {1})'.format('DESC_FILE',import_dir))
 
         # Copy def file to import folder
         copy(fname, import_dir)
@@ -264,10 +261,10 @@ class Importer(object):
         '''
         if result:
             self.num_of_imported_files += 1
-            logging.info('Data file imported successfully')
+            logger.info('Data file imported successfully')
         else:
             self.num_of_failed_files += 1
-            logging.warn('Data file importing failed!')
+            logger.warn('Data file importing failed!')
 
     def do_import_files(self):
         '''
@@ -276,7 +273,7 @@ class Importer(object):
 
         # Main loop on files
         for i, fname in enumerate(self.input_files):
-            logging.info('Preparing import of file {0} of {1}: {2}'
+            logger.info('Preparing import of file {0} of {1}: {2}'
                          .format(i + 1, self.num_of_files, fname))
 
             # Detect data type
@@ -298,12 +295,12 @@ class Importer(object):
                             break
 
             if not ftype:
-                logging.warn('Unidentified data file type. Failed import.')
+                logger.warn('Unidentified data file type. Failed import.')
                 self.num_of_failed_files += 1
                 continue
 
             import_dir = self.ares_import + "/" + fimport_dir
-            logging.info('Data type: {0} (folder: {1})'.format(ftype,import_dir))
+            logger.info('Data type: {0} (folder: {1})'.format(ftype,import_dir))
 
             # Copy data file to import folder
             copy(fname, import_dir)
@@ -320,30 +317,30 @@ class Importer(object):
             return
 
         if not self.hasCompiledPatterns:
-            logging.error('No patterns file was found nor patterns were provided by the user')
+            logger.error('No patterns file was found nor patterns were provided by the user')
             #os._exit(1)
 
         #self.compile_patterns()
 
-        logging.info('Import process starting')
-        logging.info('-'*60)
+        logger.info('Import process starting')
+        logger.info('-'*60)
 
         self.do_import_files()
 
         if self.desc_file:
-            logging.info('-'*60)
-            logging.info('Importing parameter descriptions . . .')
+            logger.info('-'*60)
+            logger.info('Importing parameter descriptions . . .')
             self.import_descriptions()
 
-        logging.info('-'*60)
-        logging.info('Import process completed.')
-        logging.info('{0} of {1} files successfully imported.'
+        logger.info('-'*60)
+        logger.info('Import process completed.')
+        logger.info('{0} of {1} files successfully imported.'
                      .format(self.num_of_imported_files, self.num_of_files))
         if self.num_of_failed_files > 0:
-            logging.warn('{0} of {1} files import failed.'
+            logger.warn('{0} of {1} files import failed.'
                          .format(self.num_of_failed_files, self.num_of_files))
-        logging.info('-'*60)
-        logging.info('Done.')
+        logger.info('-'*60)
+        logger.info('Done.')
 
 
 def main():

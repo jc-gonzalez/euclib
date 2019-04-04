@@ -10,6 +10,12 @@ GUI Application class for the Ares Retrieval/Import Tool
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import os, sys
+_filedir_ = os.path.dirname(__file__)
+_appsdir_, _ = os.path.split(_filedir_)
+_basedir_, _ = os.path.split(_appsdir_)
+sys.path.insert(0, os.path.abspath(os.path.join(_filedir_, _basedir_)))
+
 from tkinter import *
 from tkinter import messagebox as MessageBox
 from tkinter import simpledialog as SimpleDialog
@@ -22,12 +28,13 @@ from tkinter import ttk
 
 # used to check if functions have a parameter
 from inspect import getfullargspec as getArgs
+
 PYTHON2 = False
 PY_NAME = "python3"
 STRING = str
 
 # import other useful classes
-import os, sys, errno
+import errno
 import time
 import datetime
 import logging
@@ -38,11 +45,13 @@ import configparser
 import json
 
 from gui.simpleeditor import launch_modal_editor
-from gui.gui_elements import EntrySpinbox, YMDSpinboxes,  YDoYSpinboxes,  HMSmsSpinboxes, DateTime, StatusBar, CustomText
+from gui.gui_elements import EntrySpinbox, YMDSpinboxes, YDoYSpinboxes, \
+    HMSmsSpinboxes, DateTime, StatusBar, CustomText
 from ares.aresdb.aresdb import AresDBConnection
 from ares.ares_import.ares_import import Importer
 from ares.ares_retrieve.ares_retrieve import Retriever
 
+from tools.filetools import getContentOfFile, createDirIfNotExist, runCommandAsSubprocess
 
 # details
 __author__ = "J C Gonzalez"
@@ -55,14 +64,14 @@ __status__ = "Development"
 #__url__ = ""
 
 
-RetrievalConfigFile = './retrieval_config.ini'
-ImportConfigFile = './import_config.json'
+RetrievalConfigFile = _basedir_ + '/cfg/retrieval_config.ini'
+ImportConfigFile    = _basedir_ + '/cfg/import_config.json'
 
 class App:
     '''
     Main application class for the GUI
     '''
-    
+
     def __init__(self, parent):
         '''
         Initialize the class data members and build the entire GUI
@@ -100,7 +109,7 @@ class App:
         self.importRegisteredDataTypes = list(json.loads(self.importConfigFileContent).keys())
 
         parent.title('ARES Import & Retrieval Tool')
-        
+
         #=== Dialog menu bar
 
         menu = Menu(parent)
@@ -608,7 +617,7 @@ class App:
         Callback to retrive data from ARES cluster
         '''
         # Get information
-        print(json.dumps(self.getRetrievalParams()))
+        #print(json.dumps(self.getRetrievalParams()))
         #self.retrOut.delete('1.0', END)
         #self.retrOut.pack(expand=Y, fill=BOTH)
         #for path in run('find . -name "*.so" -ls'):
@@ -689,7 +698,7 @@ class App:
         '''
         self.greetings('ARES Import & Retrieval Tool - Data Import')
         imprtParams = self.getImportParameters()
-        print(json.dumps(imprtParams))
+        #print(json.dumps(imprtParams))
         importer = Importer(data_dir=imprtParams['input_dir'],
                             input_file=imprtParams['input_files'],
                             desc_file=imprtParams['description_file'],
