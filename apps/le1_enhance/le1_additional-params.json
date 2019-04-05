@@ -1,0 +1,42 @@
+{
+    "header": {
+        "title": "Level 1 - Additional parameters configuration",
+        "description": "Configuration of parameters to be added to the set of metadata for LE1 products",
+        "version": "0.1"
+    },
+    "data": {
+        "VIS": {
+            "NDW00001": {
+                "parameter": "NDW00001",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "summary" }
+            },
+            "NDW00138": {
+                "parameter": "NDW00138",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "summary" }
+            },
+            "NDW00138b": {
+                "parameter": "NDW00138",
+                "timespan": { "type": "modified", "begin": 21600, "end": -21600 },
+                "dataset": { "mode": "summary" }
+            },
+            "GACD0001": {
+                "parameter": "GACD001",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "summary" }
+            },
+            "GACD0010": {
+                "parameter": "GACD0010",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "linear" }
+            }
+        },
+        "NIR": {
+
+        },
+        "SIR": {
+
+        }
+    }
+}
