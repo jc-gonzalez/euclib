@@ -8,6 +8,7 @@ Handy functions with some file-related utilities
 # import other useful classes
 import os, sys, errno
 import subprocess
+import gzip
 
 # details
 __author__ = "J C Gonzalez"
@@ -59,6 +60,30 @@ def runCommandAsSubprocess(command):
     return_code = popen.wait()
     if return_code:
         raise subprocess.CalledProcessError(return_code, command)
+
+def silent_remove(filename):
+    '''
+    Silently remove file if it does exist
+    '''
+    try:
+        os.remove(filename)
+    except OSError as e: # this would be "except OSError, e:" before Python 2.6
+        if e.errno != errno.ENOENT: # errno.ENOENT = no such file or directory
+            raise # re-raise exception if a different error occurred
+
+
+def gzip_file(src_path, dst_path):
+    '''
+    Gzip file to file.gz
+
+    :param src_path: Existing file
+    :param dst_path: Compressed file
+    '''
+    with open(src_path, 'rb') as src, gzip.open(dst_path, 'wb') as dst:
+        for chunk in iter(lambda: src.read(10240), b""):
+            dst.write(chunk)
+
+    os.remove(src_path)
 
 
 if __name__ == '__main__':
