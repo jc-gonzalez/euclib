@@ -137,7 +137,7 @@ class TimeIntervalType(Enum):
 #----------------------------------------------------------------------------
 # Enum DatasetAggregator: Operation to perform on dataset
 #----------------------------------------------------------------------------
-class DatasetAggregator(Enum):
+class Aggregator(Enum):
     Undefined  = ''
     # Single parameter metrics
     Count       = 'count'    # count how many values - default
@@ -204,22 +204,20 @@ class LE1_FilesMetadataEnhancer:
 
                 # Get begin and end values ("user" not yet handled)
                 delta = [0, 0]
-                if spec['timespan']['type'] == TimeIntervalType.Observation:
+                if TimeIntervalType(spec['timespan']['type']) == TimeIntervalType.Modified:
                     delta = [spec['timespan']['begin'],
                              spec['timespan']['end']]
 
                 # Get aggregator
-                aggr_name = spec['dataset']['mode']
-                aggr = self.getAggregator(DatasetAggregator(aggr_name))
+                aggr_name = Aggregator(spec['dataset']['mode'])
+                aggr = self.getAggregator(aggr_name)
 
-                p[newpar] = {'params': params,
-                             'delta': delta,
-                             'aggr_name': aggr_name,
-                             'aggr': aggr}
+                p[newpar] = {'params': params, 'delta': delta,
+                             'aggr_name': aggr_name, 'aggr': aggr}
 
             self.param_rqsts[section] = p
 
-    def getAggregator(self, aggr=DatasetAggregator.Sum):
+    def getAggregator(self, aggr=Aggregator.Sum):
         '''
         Aggregate one array of values into one or more output data values
         :param arr: Data values
@@ -227,23 +225,23 @@ class LE1_FilesMetadataEnhancer:
         :return:
         '''
         # Single parameter metrics
-        if   aggr == DatasetAggregator.Count:
+        if   aggr == Aggregator.Count:
             return lambda a : max(a.shape)
-        elif aggr == DatasetAggregator.Sum:
+        elif aggr == Aggregator.Sum:
             return lambda a : np.sum(a)
-        elif aggr == DatasetAggregator.Average:
+        elif aggr == Aggregator.Average:
             return lambda a: np.mean(a)
-        elif aggr == DatasetAggregator.StDev:
+        elif aggr == Aggregator.StDev:
             return lambda a: np.std(a)
-        elif aggr == DatasetAggregator.Var:
+        elif aggr == Aggregator.Var:
             return lambda a: np.var(a)
-        elif aggr == DatasetAggregator.Min:
+        elif aggr == Aggregator.Min:
             return lambda a: np.min(a)
-        elif aggr == DatasetAggregator.Max:
+        elif aggr == Aggregator.Max:
             return lambda a: np.max(a)
-        elif aggr == DatasetAggregator.Median:
+        elif aggr == Aggregator.Median:
             return lambda a: np.median(a)
-        elif aggr == DatasetAggregator.Summary:
+        elif aggr == Aggregator.Summary:
             return lambda a: {"count": max(a.shape),
                               "sum": np.sum(a),
                               "avg": np.mean(a),
@@ -252,28 +250,28 @@ class LE1_FilesMetadataEnhancer:
                               "min": np.min(a),
                               "max": np.max(a),
                               "median": np.median(a)}
-        elif aggr == DatasetAggregator.Table:
+        elif aggr == Aggregator.Table:
             return None
-        elif aggr == DatasetAggregator.Compressed:
+        elif aggr == Aggregator.Compressed:
             return None
-        elif aggr == DatasetAggregator.Last:
+        elif aggr == Aggregator.Last:
             return lambda a: a[-1]
-        elif aggr == DatasetAggregator.First:
+        elif aggr == Aggregator.First:
             return lambda a: a[0]
-        elif aggr == DatasetAggregator.FirstLast:
+        elif aggr == Aggregator.FirstLast:
             return lambda a: [a[0], a[-1]]
-        elif aggr == DatasetAggregator.Linear:
+        elif aggr == Aggregator.Linear:
             return lambda x, y: [np.linalg.lstsq(np.vstack([x, np.ones(len(x))]).T, y,
                                                  rcond=None)[0],
                                  np.corrcoef(x, y)[0, 1] ** 2]
         # 2-parameter metrics
-        elif aggr == DatasetAggregator.Corr:
+        elif aggr == Aggregator.Corr:
             return lambda x, y: np.correlate(x, y)
-        elif aggr == DatasetAggregator.Distance:
+        elif aggr == Aggregator.Distance:
             return lambda x, y: np.sqrt(np.sum(np.square(np.subtract(x, y))))
-        elif aggr == DatasetAggregator.AbsDistance:
+        elif aggr == Aggregator.AbsDistance:
             return lambda x, y: np.sum(np.fabs(np.subtract(x, y)))
-        elif aggr == DatasetAggregator.SumProd:
+        elif aggr == Aggregator.SumProd:
             return lambda x, y: np.sum(np.multiply(x, y))
         # Default - Count
         else:
@@ -289,43 +287,49 @@ class LE1_FilesMetadataEnhancer:
         :param aggr: The aggregator to use
         :return:
         '''
-        params = dataset.keys()
+        params = list(dataset.keys())
 
-        if (aggr_name == DatasetAggregator.Count or
-            aggr_name == DatasetAggregator.Sum or
-            aggr_name == DatasetAggregator.Average or
-            aggr_name == DatasetAggregator.StDev or
-            aggr_name == DatasetAggregator.Var or
-            aggr_name == DatasetAggregator.Min or
-            aggr_name == DatasetAggregator.Max or
-            aggr_name == DatasetAggregator.Median or
-            aggr_name == DatasetAggregator.Summary or
-            aggr_name == DatasetAggregator.Last or
-            aggr_name == DatasetAggregator.First or
-            aggr_name == DatasetAggregator.FirstLast):
-            if len(params < 1):
+        if (aggr_name == Aggregator.Count or
+            aggr_name == Aggregator.Sum or
+            aggr_name == Aggregator.Average or
+            aggr_name == Aggregator.StDev or
+            aggr_name == Aggregator.Var or
+            aggr_name == Aggregator.Min or
+            aggr_name == Aggregator.Max or
+            aggr_name == Aggregator.Median or
+            aggr_name == Aggregator.Summary or
+            aggr_name == Aggregator.Last or
+            aggr_name == Aggregator.First or
+            aggr_name == Aggregator.FirstLast):
+            if len(params) < 1:
                 logger.error("Cannot aggregate non-existing data")
                 return None
-            return aggr(dataset[params[0]]['values']['data'])
+            par = params[0]
+            return aggr(dataset[par]['values']['data'])
 
-        if (aggr_name == DatasetAggregator.Corr or
-            aggr_name == DatasetAggregator.Distance or
-            aggr_name == DatasetAggregator.AbsDistance or
-            aggr_name == DatasetAggregator.SumProd):
-            if len(params < 2):
+        if (aggr_name == Aggregator.Corr or
+            aggr_name == Aggregator.Distance or
+            aggr_name == Aggregator.AbsDistance or
+            aggr_name == Aggregator.SumProd):
+            if len(params) < 2:
                 logger.error("At least 2 parameters are needed for '{}' aggregator"
                              .format(aggr_name))
                 return None
-            return aggr(dataset[params[0]]['values']['data'],
-                        dataset[params[1]]['values']['data'])
+            par1 = params[0]
+            par2 = params[1]
+            return aggr(dataset[par1]['values']['data'],
+                        dataset[par2]['values']['data'])
 
-        if (aggr_name == DatasetAggregator.Linear):
-            if len(params < 2):
-                return aggr(dataset[params[0]]['timestamp']['data'],
-                            dataset[params[0]]['values']['data'])
+        if (aggr_name == Aggregator.Linear):
+            if len(params) < 2:
+                par = params[0]
+                return aggr(dataset[par]['timestamp']['data'],
+                            dataset[par]['values']['data'])
             else:
-                return aggr(dataset[params[0]]['values']['data'],
-                            dataset[params[1]]['values']['data'])
+                par1 = params[0]
+                par2 = params[1]
+                return aggr(dataset[par1]['values']['data'],
+                            dataset[par2]['values']['data'])
 
         return None
 
@@ -336,20 +340,22 @@ class LE1_FilesMetadataEnhancer:
         :return: (t1, t2): Start and end time
         '''
         self.meta = self.prodMeta.parse(file)
-        self.pfunc = self.meta['proc_func']
+        self.creator = self.meta['creator']
         datetime_start = 0
         datetime_end = 0
-        if self.pfunc == LE1ProductType.VIS:
-            datetime_str = self.meta['meta']['headers'][1]['DATE_OBS']
+        if LE1ProductType(self.creator) == LE1ProductType.VIS:
+            #datetime_str = self.meta['meta']['headers'][1]['DATE_OBS']
+            datetime_str = '2018-07-17T00:00:00.000000'
             datetime_start = datetime.strptime(datetime_str, '%Y-%m-%dT%H:%M:%S.%f')
-            exptime_str = self.meta['meta']['headers'][1]['EXPTIME']
+            #exptime_str = self.meta['meta']['headers'][1]['EXPTIME']
+            exptime_str = '86400'
             datetime_end = datetime_start + timedelta(seconds=int(exptime_str))
-        elif self.pfunc == LE1ProductType.NIR:
+        elif LE1ProductType(self.creator) == LE1ProductType.NIR:
             pass
-        elif self.pfunc == LE1ProductType.SIR:
+        elif LE1ProductType(self.creator) == LE1ProductType.SIR:
             pass
         else:
-            logger.error('Processing function "{}" not known.'.format(self.pfunc))
+            logger.error('Processing function "{}" not known.'.format(self.creator))
             return (None, None)
 
         return (datetime_start, datetime_end)
@@ -365,7 +371,10 @@ class LE1_FilesMetadataEnhancer:
         endtime_ms   = datetime_to_ms(endtime, 0)
 
         # Retrieve parameter samples as DataFrame
-        samples = self.data_provider.get_parameter_sysel_data_objs(params, syselem,
+        logger.info('Retrieving data, param: {}.{}, time range: {} - {}'
+                    .format(syselem, ','.join(params), starttime, endtime))
+        syselems = [syselem] * len(params)
+        samples = self.data_provider.get_parameter_sysel_data_objs(params, syselems,
                                                                    starttime_ms, endtime_ms)
 
         param_data = {}
@@ -418,10 +427,10 @@ class LE1_FilesMetadataEnhancer:
 
         return param_data
 
-    def storeNewPar(self, hdu, newpar, meta, newparkwd):
+    def storeNewPar(self, hdr, newpar, meta, newparkwd):
         '''
         Add the name, values and comments for a new parameter in the FITS header
-        :param hdu: The HD Unit in the FITS file
+        :param hdr: The HD Unit in the FITS file
         :param newpar: New parameter name
         :param meta: New metadata information for the new param.
         :param newparkwd: New parameters keyword prefix
@@ -431,23 +440,25 @@ class LE1_FilesMetadataEnhancer:
         aggrname = meta['aggr_name']
         if aggrdata:
             # Store new par name, with comment
-            hdu[newparkwd] = (newpar, '{}({})'.format(aggrname, meta['params']))
-            if aggrname == DatasetAggregator.Summary:
-                hdu[newparkwd + 'CNT'] = aggrdata['count']
-                hdu[newparkwd + 'SUM'] = aggrdata['sum']
-                hdu[newparkwd + 'AVG'] = aggrdata['avg']
-                hdu[newparkwd + 'STD'] = aggrdata['std']
-                hdu[newparkwd + 'VAR'] = aggrdata['var']
-                hdu[newparkwd + 'MIN'] = aggrdata['min']
-                hdu[newparkwd + 'MAX'] = aggrdata['max']
-                hdu[newparkwd + 'MED'] = aggrdata['median']
-            elif aggrname == DatasetAggregator.Linear:
-                hdu[newparkwd + '_M'] = (aggrdata[0][0], 'Slope of the linear model  y ~ m x + b')
-                hdu[newparkwd + '_B'] = (aggrdata[0][1], 'Y-intercept of the linear model  y ~ m x + b')
-                hdu[newparkwd + '_R2'] = (aggrdata[1], 'Correlation coefficient of the fit')
-        elif aggrname == DatasetAggregator.Table:
+            hdr[newparkwd] = (newpar, '{}({})'.format(aggrname, meta['params']))
+            if aggrname == Aggregator.Summary:
+                hdr[newparkwd + 'CNT'] = aggrdata['count']
+                hdr[newparkwd + 'SUM'] = aggrdata['sum']
+                hdr[newparkwd + 'AVG'] = aggrdata['avg']
+                hdr[newparkwd + 'STD'] = aggrdata['std']
+                hdr[newparkwd + 'VAR'] = aggrdata['var']
+                hdr[newparkwd + 'MIN'] = aggrdata['min']
+                hdr[newparkwd + 'MAX'] = aggrdata['max']
+                hdr[newparkwd + 'MED'] = aggrdata['median']
+            elif aggrname == Aggregator.Linear:
+                hdr[newparkwd + '_M'] = (aggrdata[0][0], 'Slope of the linear model  y ~ m x + b')
+                hdr[newparkwd + '_B'] = (aggrdata[0][1], 'Y-intercept of the linear model  y ~ m x + b')
+                hdr[newparkwd + '_R2'] = (aggrdata[1], 'Correlation coefficient of the fit')
+            else:
+                hdr[newparkwd + 'VAL'] = aggrdata.item(0)
+        elif aggrname == Aggregator.Table:
             pass
-        elif aggrname == DatasetAggregator.Compressed:
+        elif aggrname == Aggregator.Compressed:
             pass
         else:
             logger.error('New metadata not found to store for "{}"'.format(newpar))
@@ -469,12 +480,13 @@ class LE1_FilesMetadataEnhancer:
             # Just create a copy of the input as the output
             copyfile(f_in, f_out)
 
-        with fits.open(f_out) as hdul:
+        with fits.open(f_out, mode='update') as hdul:
             i = 1
             for newpar, meta in new_meta.items():
                 newparkwd = 'HMS{:02d}'.format(i)
-                self.storeNewPar(hdul[0], newpar, meta, newparkwd)
+                self.storeNewPar(hdul[0].header, newpar, meta, newparkwd)
                 i = i + 1
+            hdul.flush()
 
     def processFile(self, file_tuple):
         '''
@@ -492,32 +504,30 @@ class LE1_FilesMetadataEnhancer:
         new_meta = {}
 
         # Loop over all new parameters defined for this type of products
-        for newpar, rqst in self.param_rqsts[self.pfunc].items():
+        for newpar, rqst in self.param_rqsts[self.creator].items():
             # Build retrieval times
             t_start = time_start + timedelta(seconds=rqst['delta'][0])
             t_end   = time_end   + timedelta(seconds=rqst['delta'][1])
 
             # Build list of parameters to retrieve
-            params = rqst['params'].split(',')
-
-            # Get aggregator
-            aggr = rqst['aggr']
+            params = list(rqst['params'].split(','))
 
             # Retrieve data
             param_data = self.getParamData(params, t_start, t_end)
 
             # Aggregate data
-            aggregated_data = self.aggregate(param_data,
-                                             rqst['aggr_name'],
-                                             rqst['aggr'])
+            aggr_data = self.aggregate(param_data,
+                                       rqst['aggr_name'],
+                                       rqst['aggr'])
 
             new_meta[newpar] = {'data': param_data,
                                 'params': rqst['params'],
-                                'aggr_name': rqst['aggregator_name'],
-                                'aggr_data': aggregated_data}
+                                'aggr_name': rqst['aggr_name'],
+                                'aggr_data': aggr_data}
 
         # Finally, store new metadata information in output file
         self.storeNewMetadata(file_tuple, new_meta)
+        logger.info('Ouptut written to {}'.format(f_out))
 
     def process(self):
         '''
