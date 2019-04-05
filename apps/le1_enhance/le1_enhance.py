@@ -440,7 +440,7 @@ class LE1_FilesMetadataEnhancer:
         aggrname = meta['aggr_name']
         if aggrdata:
             # Store new par name, with comment
-            hdr[newparkwd] = (newpar, '{}({})'.format(aggrname, meta['params']))
+            hdr[newparkwd] = (newpar, '{}({})'.format(aggrname.name, meta['params']))
             if aggrname == Aggregator.Summary:
                 hdr[newparkwd + 'CNT'] = aggrdata['count']
                 hdr[newparkwd + 'SUM'] = aggrdata['sum']
@@ -454,6 +454,9 @@ class LE1_FilesMetadataEnhancer:
                 hdr[newparkwd + '_M'] = (aggrdata[0][0], 'Slope of the linear model  y ~ m x + b')
                 hdr[newparkwd + '_B'] = (aggrdata[0][1], 'Y-intercept of the linear model  y ~ m x + b')
                 hdr[newparkwd + '_R2'] = (aggrdata[1], 'Correlation coefficient of the fit')
+            elif aggrname == Aggregator.FirstLast:
+                hdr[newparkwd + '_1'] = aggrdata[0]
+                hdr[newparkwd + '_2'] = aggrdata[1]
             else:
                 hdr[newparkwd + 'VAL'] = aggrdata.item(0)
         elif aggrname == Aggregator.Table:

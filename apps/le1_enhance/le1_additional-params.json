@@ -41,15 +41,45 @@
                 "timespan": { "type": "observation" },
                 "dataset": { "mode": "linear" }
             },
+            "GACD0010beg": {
+                "parameter": "GACD0010",
+                "timespan": { "type": "modified", "begin": 0, "end": -64800 },
+                "dataset": { "mode": "linear" }
+            },
+            "GACD0010end": {
+                "parameter": "GACD0010",
+                "timespan": { "type": "modified", "begin": 64800, "end": 0 },
+                "dataset": { "mode": "linear" }
+            },
             "LAST_GACD0010": {
                 "parameter": "GACD0010",
                 "timespan": { "type": "observation" },
                 "dataset": { "mode": "last" }
             },
+            "FIRST_GACD0010": {
+                "parameter": "GACD0010",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "first" }
+            },
+            "START_STOP_GACD0010": {
+                "parameter": "GACD0010",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "first_last" }
+            },
             "GAC11061_2": {
                 "parameter": "GAC11060,GAC11061",
                 "timespan": { "type": "observation" },
                 "dataset": { "mode": "corr" }
+            },
+            "GAC11061_2dist": {
+                "parameter": "GAC11060,GAC11061",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "dist" }
+            },
+            "GAC11061_2lin": {
+                "parameter": "GAC11060,GAC11061",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "linear" }
             }
         },
         "NIR": {
