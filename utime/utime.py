@@ -30,10 +30,8 @@ def unix_ymd_to_ms(y,m,d,h=0,mi=0,s=0,ms=0):
     :param ms: Milliseconds
     :return: Date in milliseconds from Unix Epoch 0
     '''
-    epoch = datetime.datetime.utcfromtimestamp(0)
     dt = datetime.datetime(y,m,d,h,mi,s)
-    return int((dt - epoch).total_seconds() * 1000.0 + ms)
-
+    return datetime_to_ms(dt, ms)
 
 def unix_ydoy_to_ms(y,doy,h=0,mi=0,s=0,ms=0):
     '''
@@ -48,10 +46,17 @@ def unix_ydoy_to_ms(y,doy,h=0,mi=0,s=0,ms=0):
     :param ms: Milliseconds
     :return: Date in milliseconds from Unix Epoch 0
     '''
-    epoch = datetime.datetime.utcfromtimestamp(0)
     dt = datetime.datetime(y, 1, 1, h, mi, s) + datetime.timedelta(doy - 1)
-    return int((dt - epoch).total_seconds() * 1000.0 + ms)
+    return datetime_to_ms(dt, ms)
 
+def datetime_to_ms(dt, ms=0):
+    '''
+    Convert the date and time in a datetime object to milliseconds of the epoch
+    :param datetime_obj: The datetime object with the date and time, to convert to ms
+    :return: ms
+    '''
+    epoch = datetime.datetime.utcfromtimestamp(0)
+    return int((dt - epoch).total_seconds() * 1000.0 + ms)
 
 def unix_ms_to_datestr(ms):
     '''
