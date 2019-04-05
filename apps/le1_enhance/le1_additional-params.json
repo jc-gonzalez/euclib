@@ -18,11 +18,21 @@
             },
             "NDW00138b": {
                 "parameter": "NDW00138",
+                "timespan": { "type": "modified", "begin": 7200, "end": -7200 },
+                "dataset": { "mode": "summary" }
+            },
+            "NDW00138c": {
+                "parameter": "NDW00138",
                 "timespan": { "type": "modified", "begin": 21600, "end": -21600 },
                 "dataset": { "mode": "summary" }
             },
+            "NDW00138d": {
+                "parameter": "NDW00138",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "last" }
+            },
             "GACD0001": {
-                "parameter": "GACD001",
+                "parameter": "GACD0001",
                 "timespan": { "type": "observation" },
                 "dataset": { "mode": "summary" }
             },
@@ -30,6 +40,16 @@
                 "parameter": "GACD0010",
                 "timespan": { "type": "observation" },
                 "dataset": { "mode": "linear" }
+            },
+            "LAST_GACD0010": {
+                "parameter": "GACD0010",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "last" }
+            },
+            "GAC11061_2": {
+                "parameter": "GAC11060,GAC11061",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "corr" }
             }
         },
         "NIR": {
