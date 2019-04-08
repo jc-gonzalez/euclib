@@ -11,6 +11,18 @@
                 "timespan": { "type": "observation" },
                 "dataset": { "mode": "summary" }
             },
+            "NDW00001_25": {
+                "parameter": "NDW00001",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "custom",
+                             "lambda": "lambda x : np.percentile(x, 25)"}
+            },
+            "NDW00001_75": {
+                "parameter": "NDW00001",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "custom",
+                             "lambda": "lambda x : np.percentile(x, 75)"}
+            },
             "NDW00138": {
                 "parameter": "NDW00138",
                 "timespan": { "type": "observation" },

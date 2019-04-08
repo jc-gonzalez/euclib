@@ -1,9 +1,58 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-'''
-ares_retrimp
+'''le1_enhance.py
 
-Ares Retrieve-Import Tool with GUI
+From a configuration file, retrieve data for a given set of parameters
+and enhance the metadata of the specified LE1 (VIS and NISP) products
+according to the parameters and aggregation methods requested in that
+file.
+
+usage: le1_enhance.py [-h] [-c CONFIG_FILE] [-f INPUT_FILE] [-d INPUT_DIR]
+                      [-o OUTPUT] [-g]
+
+Test script to enhance LE1 products
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c CONFIG_FILE, --config CONFIG_FILE
+                        Configuration file to use (default: None)
+  -f INPUT_FILE, --file INPUT_FILE
+                        Input product (default: None)
+  -d INPUT_DIR, --dir INPUT_DIR
+                        Input files directory (default: None)
+  -o OUTPUT, --output OUTPUT
+                        Output file name (default: None)
+  -g, --gui             Output file name (default: False)
+
+
+Sample config. file (le1_enh.json):
+{
+    "header": {
+        "title": "Level 1 - Additional parameters configuration",
+        "description": "Parameters to be added for LE1 products",
+        "version": "0.1"
+    },
+    "data": {
+        "VIS": {
+            "NDW00001": {
+                "parameter": "NDW00001",
+                "timespan": { "type": "observation" },
+                "dataset": { "mode": "summary" }
+            },
+            "NDW00138c": {
+                "parameter": "NDW00138",
+                "timespan": { "type": "modified", "begin": 21600, "end": -21600 },
+                "dataset": { "mode": "linear" }
+            }
+        },
+        "NIR": {},
+        "SIR": {}
+    }
+}
+
+Sample command line:
+$ python3 ./le1_enhance.py -d ./in -o ./out -c ./le1_enh.json
+
 '''
 
 # make print & unicode backwards compatible
@@ -160,6 +209,9 @@ class Aggregator(Enum):
     Distance    = 'dist'     # norm2 of the vector of differences
     AbsDistance = 'absdist'  # norm1 of the vector of differences
     SumProd     = 'sumprod'  # sum of the products
+    # Custom defined
+    Custom      = 'custom'   # defines the lambda to use
+
 
 def splitFileName(file):
     fileinit, file_ext = os.path.splitext(file)
@@ -210,10 +262,16 @@ class LE1_FilesMetadataEnhancer:
 
                 # Get aggregator
                 aggr_name = Aggregator(spec['dataset']['mode'])
-                aggr = self.getAggregator(aggr_name)
-
+                func = ''
+                if aggr_name != Aggregator.Custom:
+                    aggr = self.getAggregator(aggr_name)
+                else:
+                    fn = spec['dataset']['lambda']
+                    aggr = eval(fn)
+                    func = fn[fn.find(':')+1:] if fn[0:7] == 'lambda ' else fn
                 p[newpar] = {'params': params, 'delta': delta,
-                             'aggr_name': aggr_name, 'aggr': aggr}
+                             'aggr_name': aggr_name, 'aggr': aggr,
+                             'fn': func}
 
             self.param_rqsts[section] = p
 
@@ -331,6 +389,35 @@ class LE1_FilesMetadataEnhancer:
                 return aggr(dataset[par1]['values']['data'],
                             dataset[par2]['values']['data'])
 
+        if (aggr_name == Aggregator.Custom):
+            if len(params) == 1:
+                par1 = params[0]
+                return aggr(dataset[par1]['values']['data'])
+            if len(params) == 1:
+                par1, par2 = params[0:2]
+                return aggr(dataset[par1]['values']['data'],
+                            dataset[par2]['values']['data'])
+            if len(params) == 3:
+                par1, par2, par3 = params[0:3]
+                return aggr(dataset[par1]['values']['data'],
+                            dataset[par2]['values']['data'],
+                            dataset[par3]['values']['data'])
+            if len(params) == 4:
+                par1, par2, par3, par4 = params[0:4]
+                return aggr(dataset[par1]['values']['data'],
+                            dataset[par2]['values']['data'],
+                            dataset[par3]['values']['data'],
+                            dataset[par4]['values']['data'])
+            if len(params) == 5:
+                par1, par2, par3, par4, par5 = params[0:5]
+                return aggr(dataset[par1]['values']['data'],
+                            dataset[par2]['values']['data'],
+                            dataset[par3]['values']['data'],
+                            dataset[par4]['values']['data'],
+                            dataset[par5]['values']['data'])
+            else:
+                return 0
+
         return None
 
     def getTimeSpanFromFile(self, file):
@@ -440,7 +527,10 @@ class LE1_FilesMetadataEnhancer:
         aggrname = meta['aggr_name']
         if aggrdata:
             # Store new par name, with comment
-            hdr[newparkwd] = (newpar, '{}({})'.format(aggrname.name, meta['params']))
+            fn = meta['fn']
+            hdr[newparkwd] = (newpar, '{}({}){}'
+                              .format(aggrname.name, meta['params'],
+                                      ' = ' + fn if len(fn) > 0 else ''))
             if aggrname == Aggregator.Summary:
                 hdr[newparkwd + 'CNT'] = aggrdata['count']
                 hdr[newparkwd + 'SUM'] = aggrdata['sum']
@@ -526,7 +616,8 @@ class LE1_FilesMetadataEnhancer:
             new_meta[newpar] = {'data': param_data,
                                 'params': rqst['params'],
                                 'aggr_name': rqst['aggr_name'],
-                                'aggr_data': aggr_data}
+                                'aggr_data': aggr_data,
+                                'fn': rqst['fn']}
 
         # Finally, store new metadata information in output file
         self.storeNewMetadata(file_tuple, new_meta)
@@ -638,19 +729,6 @@ def main():
     # Create main object, and launch process
     le1enh = LE1_FilesMetadataEnhancer(file_list, enh_config)
     le1enh.process()
-
-    # fn1 = le1enh.getAggregator(aggr=DatasetAggregator.Count)
-    # fn2 = le1enh.getAggregator(aggr=DatasetAggregator.Summary)
-    # fn3 = le1enh.getAggregator(aggr=DatasetAggregator.Distance)
-    # fn4 = le1enh.getAggregator(aggr=DatasetAggregator.Linear)
-    #
-    # arr = np.array([1, 2, 4, 3, 5, 3, 6, 7, 7, 8, 9])
-    # arr2 = np.array([1.4, 2.2, 4.7, 3.7, 5.5, 3.1, 6.2, 7.3, 7.6, 8.3, 9.8])
-    # print(arr)
-    # print(fn1(arr))
-    # print(fn2(arr))
-    # print(fn3(arr, arr2))
-    # print(fn4(arr, arr2))
 
 
 if __name__ == '__main__':
