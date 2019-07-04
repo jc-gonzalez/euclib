@@ -1,0 +1,62 @@
+{
+    "base_path": "/Users/jcgonzalez/ws/python/sis/SOC-IF",
+    "id": {
+        "ECSrv": "ecsrv",
+        "IOT": "iot",
+        "MOC": "moc",
+        "SGS": "sgs",
+        "EAS": "soc_eas",
+        "ESS": "soc_ess",
+        "HMS": "soc_hms",
+        "LE1": "soc_le1",
+        "QLA": "soc_qla",
+        "SCS": "soc_scs",
+        "SIS": "soc_sis"
+    },
+    "data_flows": [
+        { "group": "Instr.Cmd.Rqsts.",
+          "flows": { "cmd": { "name": "Cmd.Rqsts",
+                              "circulation": "IOT=>ESS,SCS" } }
+        },
+        { "group": "Other IOT Data",
+          "flows": { "iot": { "name": "IOT Data",
+                              "circulation": "IOT=>MOC,EAS" } }
+        },
+        { "group": "Ref.Surv.Def.",
+          "flows": { "srv": { "name": "EC Surv.",
+                              "circulation": "ECSrv=>EAS,ESS" } }
+        },
+        { "group": "MOC FD / Other",
+          "flows": { "data": { "name": "MOC FD / Other",
+                               "circulation": "MOC=>ESS,SCS,EAS" },
+                     "evt": { "name": "Evts. Def.",
+                              "circulation": "ESS=>SCS" } }
+        },
+        { "group": "SGS I/O",
+          "flows": { "sgsio": { "name": "SGS data",
+                                "circulation": "SGS=>EAS" } }
+        },
+        { "group": "Op.Sky.Surv.",
+          "flows": { "oss": { "name": "Op.Sky.Surv.",
+                              "circulation": "ESS=>EAS" },
+                     "ossq": { "name": "Op.Sky.Surv.Quality",
+                               "circulation": "EAS=>ESS" } }
+        },
+        { "group": "Surv. Sched. Rqst.",
+          "flows": { "ssr": { "name": "Surv. Sched. Rqst.",
+                              "circulation": "ESS=>SCS,MOC,QLA" } }
+        },
+        { "group": "LE1",
+          "flows": { "sci": { "name": "Sci Data",
+                                "circulation": "MOC=>LE1" },
+                     "edds": { "name": "HKTM",
+                               "circulation": "MOC=>HMS,LE1" },
+                     "le1": { "name": "LE1 Products",
+                              "circulation": "LE1=>EAS,QLA" } }
+        },
+        { "group": "QLA I/O",
+          "flows": { "qla": { "name": "QLA Reports",
+                              "circulation": "QLA=>HMS,EAS" } }
+        }
+    ]
+}
