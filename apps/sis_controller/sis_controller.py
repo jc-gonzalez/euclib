@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-sis-controller.py
+sis_controller.py
 
 Starting module for PyQPF application.
 
-usage: python3 sis-controller.py [-h] [-c CONFIG_FILE] [-d]
+usage: python3 sis_controller.py [-h] [-c CONFIG_FILE] [-d]
 
 Script to be used as proof of concept for SIS data circulation
 

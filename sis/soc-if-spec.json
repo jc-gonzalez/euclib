@@ -1,5 +1,5 @@
 {
-    "base_path": "/Users/jcgonzalez/ws/python/sis/SOC-IF",
+    "base_path": "/Users/jcgonzalez/SOC-IF",
     "id": {
         "ECSrv": "ecsrv",
         "IOT": "iot",

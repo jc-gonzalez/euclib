@@ -1,25 +1,300 @@
-import base64
+#!/usr/bin/env python
+'''
+classes and methods of DSS server client
+'''
+__version__ = 'Revision: 0.5.3.2'
+
+import binascii
 import hashlib
 import os
 import pickle
 import random
-import shlex
 import socket
 import ssl
 import stat
-import subprocess
+import sys
 import time
+import datetime
 import traceback
 import uuid
-from http.client import HTTPSConnection, HTTPConnection
-from urllib.parse import urlparse, urlencode
-from urllib.request import url2pathname
+import base64
+import subprocess
+import urllib
+import string
+import shlex
+import ast
 
-from dss.dssserver_client import __version__
-from dss.dss_data import Env, Compressed_Exts, Compressors, Decompressors, MapAction
-from dss.dss_rqsts import dataserver_result_to_dict
-from dss.file_util import python_to_ascii, message
-from dss.gpg_tools import gpgencrypt
+eas_dps_cus="http://eas-dps-cus.test.euclid.astro.rug.nl"
+
+
+
+if hasattr(sys.version_info,'major') and sys.version_info.major > 2:
+    from http.client import HTTPSConnection, HTTPConnection
+    from urllib.parse import urlparse
+    from urllib.parse import urlencode
+    from urllib.request import url2pathname
+    import http.cookies as Cookie
+else:
+    from httplib import HTTPSConnection, HTTPConnection
+    from urlparse import urlparse
+    from urllib import urlencode
+    from urllib import url2pathname
+    import Cookie
+try:
+    from easdss.config.Environment import Env
+except:
+    Env = os.environ
+
+def message(s):
+    """
+    substitute message with print
+    """
+#    machine_name = socket.gethostname()
+#    s_add = "%s %s " % (time.strftime('%B %d %H:%M:%S', time.localtime()), machine_name)
+    print(s)
+
+def gpgencrypt(lines, defaultkey, fout=None, lout=[], gpghomedir=None):
+    '''
+    gpgencrypt encrypts lines with defaultkey and writes them to
+    file object fout. lines should NOT contain newlines!
+    '''
+    if gpghomedir == None:
+        pcmd = subprocess.Popen('gpg                          --output - --default-key "%(defaultkey)s" --clearsign' % vars(), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    else:
+        pcmd = subprocess.Popen('gpg --homedir %(gpghomedir)s --output - --default-key "%(defaultkey)s" --clearsign' % vars(), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    if sys.version_info.major > 2:
+        (outtext, errtext) = pcmd.communicate(input=str.encode('\n'.join(lines)))
+        outtext = outtext.decode()
+        errtext = errtext.decode()
+    else:
+        (outtext, errtext) = pcmd.communicate(input='\n'.join(lines))
+    returncode = pcmd.returncode
+    if returncode == None:
+        machine_name = socket.gethostname()
+        #print('%s %s gpgencrypt: kill child!' % (time.strftime('%B %d %H:%M:%S', time.localtime()), machine_name))
+        pcmd.kill()
+        returncode = -255
+    elif returncode:
+        if errtext:
+            machine_name = socket.gethostname()
+            #print('%s %s gpgencrypt: %s' % (time.strftime('%B %d %H:%M:%S', time.localtime()), machine_name, errtext))
+    elif fout:
+        fout.write(outtext)
+    else:
+        returncode = None
+        for l in outtext.split('\n'):
+            lout.append(l+'\n')
+    return returncode
+
+def gpgdecrypt(fin=None, lin=[], gpghomedir=None):
+    '''
+    gpgdecrypt decrypts the encrypted lines read from file object
+    fin. It returns a list of strings without newlines!
+    '''
+    r = []
+    if fin:
+        buf = ''.join(fin.readlines())
+    else:
+        buf = ''.join(lin)
+    if gpghomedir == None:
+        pcmd = subprocess.Popen('gpg                          --output - --decrypt' % vars(), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    else:
+        pcmd = subprocess.Popen('gpg --homedir %(gpghomedir)s --output - --decrypt' % vars(), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    if sys.version_info.major > 2:
+        (outtext, errtext) = pcmd.communicate(input=str.encode(buf))
+        outtext = outtext.decode()
+        errtext = errtext.decode()
+    else:
+        (outtext, errtext) = pcmd.communicate(input=buf)
+    returncode = pcmd.returncode
+    if pcmd.returncode == None:
+        machine_name = socket.gethostname()
+        #print('%s %s gpgdecrypt: kill child!' % (time.strftime('%B %d %H:%M:%S', time.localtime()), machine_name))
+        pcmd.kill()
+        returncode = -255
+    elif returncode:
+        if errtext:
+            machine_name = socket.gethostname()
+            #print('%s %s gpgdecrypt: %s' % (time.strftime('%B %d %H:%M:%S', time.localtime()), machine_name, errtext))
+    else:
+        r = outtext.split()
+    return r
+
+from pdb import set_trace as breakpoint
+
+
+# extensions for decompressed, gzip and bzip2 compressed
+Compressed_Exts = [
+    '',
+#    '.gz',
+#    '.bz2',
+]
+Compressors = {
+    '':         '',
+#    '.gz':      'gzip --to-stdout --no-name ',
+#    '.bz2':     'bzip2 --stdout --compress ',
+}
+Decompressors = {
+    '':         '',
+#    '.gz':      'gzip --to-stdout --decompress ',
+#    '.bz2':     'bzip2 --stdout --decompress ',
+}
+
+MapAction = {
+    'DSSGET': 'GET',
+    'DSSSTORE':  'POST',
+    'DSSSTORED':  'GET',
+    'DSSMAKELOCAL': 'GET',
+    'DSSMAKELOCALASY': 'GET',
+    'DSSGETLOG': 'GET',
+    'GETLOCALSTATS': 'GET',
+    'GETGROUPSTATS': 'GET',
+    'GETTOTALSTATS': 'GET',
+    'LOCATE': 'GET',
+    'LOCATEFILE': 'GET',
+    'LOCATELOCAL': 'GET',
+    'LOCATEREMOTE': 'GET',
+    'MD5SUM': 'GET',
+    'PING': 'GET',
+    'SIZE': 'GET',
+    'STAT': 'GET',
+    'GET': 'GET',
+    'GETANY': 'GET',
+    'GETEXACT': 'GET',
+    'GETLOCAL': 'GET',
+    'GETREMOTE': 'GET',
+    'STORE': 'POST',
+    'STORED': 'POST',
+    'HEAD': 'GET',
+    'HEADLOCAL': 'GET',
+    'DELETE': 'GET',
+    'TAKEOVER': 'GET',
+    'TESTCACHE': 'GET',
+    'TESTSTORE': 'GET',
+    'TESTFILE': 'GET',
+    'REGISTER': 'GET',
+    'RELEASE': 'GET',
+    'RELOAD': 'GET',
+    'DSSTESTGET': 'GET',
+    'DSSTESTCONNECTION': 'GET',
+    'DSSTESTNETWORK': 'GET',
+    'DSSINIT': 'GET',
+    'DSSINITFORCE': 'GET',
+    'DSSGETTICKET': 'GET',
+}
+
+
+# DSS server, username, validity, ticket
+dssaccessfile = []
+
+# Trick(y)
+if not hasattr(os.path, 'sep'):
+    os.path.sep = '/'
+    machine_name = socket.gethostname()
+    #print('%s %s client: Warning: Use at least python version 2.3' % (
+    #    time.strftime('%B %d %H:%M:%S', time.localtime()), machine_name))
+
+
+def python_to_ascii(*args):
+    ''' binary to ascii '''
+    return binascii.b2a_hex(pickle.dumps(args))
+
+
+def ascii_to_python(arg):
+    ''' ascii to binary '''
+    return pickle.loads(binascii.a2b_hex(arg))
+
+
+def read_access_file(filename=''):
+    """ read file with DSS tickets
+    """
+    if not filename:
+        filename = os.path.join(os.environ['HOME'], '.dssaccess')
+    if os.path.isfile(filename):
+        f = open(filename, 'r')
+        for line in f.readlines():
+            tockens = line.split(',')
+            if len(tockens) == 4:
+                tockens[3]=float(tockens[3])
+                dssaccessfile.append(tockens)
+        f.close()
+
+
+def write_access_file(filename=''):
+    """ write file with DSS tickets
+    """
+    if not filename:
+        filename = os.path.join(os.environ['HOME'], '.dssaccess')
+    f = open(filename, 'w')
+    for line in dssaccessfile:
+        line[3]=str(line[3])
+        f.write(','.join(k for k in line) + '\n')
+    f.close()
+
+
+def find_ticket(server, username):
+    """ find ticket for server and user
+    """
+    tnow = time.time()
+    for line in dssaccessfile:
+        if line[0] == server and line[1] == username:
+            try:
+                if float(line[3]) > tnow:
+                    return line[2]
+                else:
+                    machine_name = socket.gethostname()
+                    #print('%s %s find_ticket: Ticket for %s expired, repeat dssinit' % (
+                    #    time.strftime('%B %d %H:%M:%S', time.localtime()), machine_name, server))
+            except:
+                return None
+    return None
+
+def add_ticket(server, username, ticket, validity):
+    """ find ticket for server and user
+    """
+    for line in dssaccessfile:
+        if line[0] == server and line[1] == username:
+            line[3] = validity
+            line[2] = ticket
+            return 1
+    line=[server, username, ticket, validity]
+    dssaccessfile.append(line)
+    return -1
+
+def delete_ticket(server, username):
+    """ remove ticket for server and user
+    """
+    for line in dssaccessfile:
+        if line[0] == server and line[1] == username:
+            dssaccessfile.remove(line)
+    return 1
+
+
+
+def delete_tickets():
+    """ delete expired tickets
+    """
+    tnow = (datetime.datetime.utcnow()-datetime.datetime(1970,1,1)).total_seconds()
+    machine_name = socket.gethostname()
+    for line in dssaccessfile:
+        if float(line[3]) < tnow:
+            dssaccessfile.remove(line)
+            #print('%s %s delete_tickets: Ticket for %s expired, repeat dssinit' % (
+            #    time.strftime('%B %d %H:%M:%S', time.localtime()), machine_name, line[0]))
+
+
+def _ping(host, port):
+    """
+    See if there is a server running out there
+    """
+    r = True
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((host, port))
+    except Exception:
+        r = False
+    s.close()
+    return r
 
 
 class DataIO(object):
@@ -186,7 +461,7 @@ class DataIO(object):
             self.cookie = cookie.copy()
         try:
             self.sslcontext = ssl._create_unverified_context()
-        except:
+        except: 
             self.sslcontext = None
             # Just to get the behaviour of older python versions
 
@@ -368,7 +643,7 @@ class DataIO(object):
                 if self.client_cookie:
                     expires = ''
                     if 'expires' in self.cookie:
-                        expires = self.cookie['expires']
+                        expires = self.cookie['expires']  
                     for k,v in self.client_cookie.items():
                         if k not in ['expires']:
                             cookie_string = '%s=%s;expires=%s;' % (k,v,expires)
@@ -1766,3 +2041,427 @@ class DataIO(object):
                 putError()
                 return_code = False
         return return_code
+
+class Storage(DataIO):
+    """
+    interface for compatibility with DataObject
+    """
+
+    def retrieve(self, data_object):
+        message('Retrieving %s' % data_object.pathname)
+        begin = time.time()
+        if hasattr(data_object, 'subimage'):
+            x1, y1, x2, y2 = data_object.subimage
+            fhi = str(x2)+','+str(y2)
+            flo = str(x1)+','+str(y1)
+            query = urlencode({'FHI':fhi, 'FLO':flo})
+            # old code query = 'RANGE2=%(x2)d,%(y2)d&RANGE1=%(x1)d,%(y1)d' % vars()
+            filename = os.path.join(data_object.filepath, data_object.filename)
+            fetch_file_from_dataserver(filename, query=query, savepath=data_object.pathname)
+        else:
+            self._set_data_path()
+            self.get(path=data_object.pathname)
+        end = time.time()
+        total = end-begin
+        if data_object.exists():
+            if total >= 0.005:
+                size = os.path.getsize(data_object.pathname)/2**10
+                message('Retrieved %s[%dkB] in %.2f seconds (%.2fkBps)' % (data_object.pathname, size, total, size/total))
+            else:
+                message('Retrieved %s' % data_object.pathname)
+
+    def store(self, data_object):
+        message('Storing %s' % data_object.pathname)
+        begin = time.time()
+        self._set_data_path()
+        self.put(path=data_object.pathname)
+        data_object.set_stored()
+        end = time.time()
+        total = end-begin
+        if data_object.exists():
+            if total >= 0.005:
+                size = os.path.getsize(data_object.pathname)/2**10
+                message('Stored %s[%dkB] in %.2f seconds (%.2fkBps)' % (data_object.pathname, size, total, size/total))
+            else:
+                message('Stored %s' % data_object.pathname)
+
+    @staticmethod
+    def object_to_commit(self, data_object):
+        return data_object
+
+
+def dataserver_result_to_dict(result):
+    '''
+    method to make dictionary of dataserver locate result
+    '''
+    d = {}
+    for elem in result.split(','):
+        key, value = elem.split('=')
+        d[key] = value
+    return d
+
+
+def fetch_file_from_dataserver(filename, hostport=None, savepath=None, query=None):
+    '''
+    method to retrieve a file from a dataserver
+    '''
+    if savepath and os.path.exists(savepath):
+        raise Exception('File  %s already exists!' % savepath)
+    if not savepath and os.path.exists(filename):
+        raise Exception('File  %s already exists!' % filename)
+    if not hostport:
+        hostport = Env['data_server'] + ':' + Env['data_port']
+    c = DataIO(hostport)
+    return c.get(filename, query=query, savepath=savepath)
+
+
+def getmd5db(filename): 
+    url_md5=eas_dps_cus+"/EuclidXML?class_name=TestDataContainerStorage&Filename=%(filename)s&PROJECT=DSS" % vars()
+    response=urllib.urlopen(url_md5)
+    inp_xml=response.read()
+    s1=inp_xml.find('<CheckSumValue>')
+    s2=inp_xml.find('</CheckSumValue>')
+    if s1>-1 and s2>-1 and s2>(s1+15):
+        return inp_xml[s1+15:s2]
+    return None
+
+def messageIAL(command,filename,localfilename,exitcode,errormessage):
+    m_type_1='''filename=%s\nfileuri=%s\nexitcode=%s\nmessage=%s\n'''
+    m_type_2='''filename=%s\nstatus=%s\nmessage=%s\n'''
+    m_type_retrieve='''{"filename":"%s","fileuri":"%s","exitcode":"%s","message":"%s"}'''
+    m_type_store='''{"filename":"%s","fileuri":"%s","status":"%s","exitcode":"%s","message":"%s"}'''
+    m_type_local='''{"filename":"%s","status":"%s","status_message":"%s","exitcode":"%s","message":"%s"}'''
+    m_type_local_asy='''{"exitcode":"%s","message":"%s","result":[%s]
+                    }
+                      '''
+    file_template='''{"filename":"%s","status":"%s","status_message":"%s"}'''
+    message_str=''
+    if command=='store':
+        filename_local=filename.strip().replace("'","")
+        if localfilename:
+            fileuri=localfilename.strip().replace("'","")
+        else: 
+            fileuri=filename_local
+        filename_local=filename_local.split("/")[-1]
+        if exitcode: 
+#           message_str = m_type_1 % (filename, localfilename,0,'')
+            message_str=m_type_store % (filename_local,fileuri,"COMPLETED","True","null",)
+        else:
+            errormessage=errormessage.replace('"','').replace("'","").replace("{","").replace("}","")
+            if errormessage.find("already exist")>-1:
+                #check MD5 
+                md5_db = getmd5db(filename_local)
+                if md5_db:
+                    md5_local = None
+                    with open(fileuri) as checkfile:
+                        data_local = checkfile.read()
+                        md5_local = hashlib.md5(data_local).hexdigest()
+                    if md5_db == md5_local: 
+                        message_str=m_type_store % (filename_local,fileuri,"COMPLETED","True","File already exists in DSS")
+                    else:
+                        message_str=m_type_store % (filename_local,fileuri,"ERROR","False","File already exists in DSS")
+                else:
+                    message_str=m_type_store % (filename_local,fileuri,"ERROR","False","Cannot retrieve MD5 from EAS-DPS")
+            else:
+                message_str=m_type_store % (filename_local,fileuri,"ERROR","False", errormessage) 
+    elif command=='retrieve': 
+        filename_local=filename.strip().replace("'","")
+        if localfilename:
+            fileuri=localfilename.strip().replace("'","")
+        else: 
+            fileuri=filename_local
+        filename_local=filename_local.split("/")[-1]
+        if exitcode: 
+#           message_str = m_type_1 % (filename, localfilename,0,'')
+            message_str=m_type_retrieve % (filename_local,fileuri,"True","null",)
+        else: 
+            errormessage=errormessage.replace('"','').replace("'","").replace("{","").replace("}","")
+            message_str=m_type_retrieve % (filename_local,fileuri,"False", errormessage) 
+    elif command=='make_local' or command=='make_local_test': 
+        if exitcode: 
+            message_str=m_type_local % (filename.strip().replace("'",""),"COMPLETED","null","True","null")
+        else: 
+            errormessage=errormessage.replace('"','').replace("'","").replace("{","").replace("}","")
+            message_str=m_type_local % (filename.strip().replace("'",""),"ERROR",'null',"False",errormessage)
+    elif command=='make_local_asy':
+        if exitcode:
+            content=errormessage.replace("u'","").replace("{","").replace("}","").replace("FAILED","ERROR").replace("FINISHED","COMPLETED").replace("RUNNING","EXECUTING").replace("STARTED","EXECUTING")
+            files=content.split(",")
+            files_content=[]
+            try:
+                for f_i in files: 
+                    f1,f2=f_i.split(":")
+                    f1=f1.strip().replace("'","")
+                    f2=f2.strip().replace("'","")
+                    files_content.append(file_template % (f1,f2,'null'))
+                message_str=m_type_local_asy % ("True","null",",\n".join(files_content))
+            except Exception as e:
+                message("ERROR in make_local_asy for file %s" % f_i)
+                raise(e)
+        else:
+            errormessage=errormessage.replace('"','').replace("'","").replace("{","").replace("}","")
+            message_str=m_type_local_asy % ("False",errormessage,"")
+    elif command=='ping': 
+        errormessage=errormessage.replace('"','').replace("'","").replace("{","").replace("}","")
+        message_str='''{exitcode:"%s",message:"%s"}''' % (exitcode,errormessage)
+    elif command in ['dsstestget', 'dsstestconnection', 'dsstestnetwork','dssgetticket','dssinit','dssinitforce']: 
+        errormessage=errormessage.replace('"','').replace("'","").replace("{","").replace("}","")
+        message_str='''{exitcode="%s",message:"%s"}''' % (exitcode,errormessage)
+    else: 
+        message_str='''{exitcode="%s",message:"%s"}''' % ('False','Unknown command')
+    message(message_str)
+    return 
+
+
+
+def main():
+    '''
+    call of the client interface
+    '''
+    table = {
+        'cachefile':    'cachefile',
+        'get':          'get',
+        'getcaps':      'getcaps',
+        'getexact':     'getexact',
+        'getid':        'getid',
+        'getlocal':     'getlocal',
+        'getremote':    'getremote',
+        'getstats':     'getstats',
+        'delete':       'delete',
+        'head':         'head',
+        'headlocal':    'headlocal',
+        'locate':       'locate',
+        'locatefile':   'locatefile',
+        'locatelocal':  'locatelocal',
+        'locateremote': 'locateremote',
+        'md5sum':       'md5sum',
+        'mirrorput':    'mirrorput',
+        'ping':         'ping',
+        'register':     'register',
+        'release':      'release',
+        'retrieve':     'get',
+        'size':         'size',
+        'stat':         'stat',
+        'store':        'put',
+        'testfile':     'testfile',
+        'testcache':    'testcache',
+        'teststore':    'teststore',
+    }
+
+    table_dss = {
+        'retrieve': 'get',
+        'store': 'put',
+        'make_local': 'makelocal',
+        'make_local_asy': 'makelocalasy',
+        'ping': 'ping',
+        'dsstestget': 'dsstestget',
+        'dsstestnetwork': 'dsstestnetwork',
+        'dsstestconnection': 'dsstestconnection',
+        'dssinit': 'dssinit',
+        'dssinitforce': 'dssinitforce',
+        'dssgetticket': 'dssgetticket',
+        'delete':'delete',
+    }
+
+    def usage():
+        '''
+        print out of usage of client
+        '''
+        message('''\
+Usage:  %s operation=<o> server=<s> filename=<f> certfile=<c> debug=<d> secure=<b> query=<q>
+
+        <o>     wanted operation, one of %s
+        <s>     wanted server(s) in hostname:portnumber format
+        <f>     filename
+        <c>     certfile with certificate and key [no secure connect]
+        <d>     debuglevel, 0 to 255 [0]
+        <b>     True or False (don't need a certfile) [False]
+        <q>     query to be attached to the filename
+
+''' % (os.path.basename(sys.argv[0]), ','.join([k for k in table.keys()])))
+        sys.exit(0)
+
+    def usage_dss():
+        message('''\
+Usage:  %s operation=<o> server=<s> filename=<f> [localfilename=<l>] inputlist=<i> certfile=<c> debug=<d> secure=<b> query=<q> username=<u> password=<p> [timeout=<t>] [looptime=<l>] [logfile=<g>] [accessfile=<a>]
+
+        <o>     wanted operation, one of %s
+        <s>     wanted server(s) in [http://|https://]hostname:portnumber format
+        <f>     filename
+        <l>     local filename to be used instead of filename, optional 
+        <c>     certfile with certificate and key [no secure connect]
+        <d>     debuglevel, 0 to 255 [0]
+        <b>     True or False (don't need a certfile) [False]
+        <q>     query to be attached to the filename
+        <u>     username, username=ticket for SSO ticket
+        <p>     password or SSO ticket
+        <t>     timeout for connection to DSS server, in sec
+        <l>     loop between requests to DSS server for asynchronious commands, in sec
+        <g>     logfile 
+        <i>     input list of filenames
+        <a>     path to file with tickets
+
+''' % (os.path.basename(sys.argv[0]), string.join([k for k in table_dss.keys()],', ')))
+        sys.exit(0)
+
+
+    uvars = {
+        'operation':    '',
+        'server':       '',
+        'filename':     '',
+        'localfilename': '',
+        'certfile':     '',
+        'debug':        0,
+        'secure':       True,
+        'query':        '',
+        'fd':           '',
+        'username':     '',
+        'password':     '',
+        'timeout':      None,
+        'looptime':      1.0,
+        'logfile':       '',
+        'inputlist':     '',
+        'accessfile':    '',
+    }
+    init_cookie={}
+    o_no_filename = ['ping', 'dsstestget', 'dsstestnetwork', 'dsstestconnection', 'dssgetticket', 'dssinit', 'dssinitforce']
+    if len(sys.argv) < 3:
+        usage_dss()
+    cnt=0
+    for arg in sys.argv[1:]:
+        (key, val) = string.split(arg, '=', maxsplit=1)
+        if key in uvars.keys():
+            if type(uvars[key]) == str:
+                if key=='filename' and len(uvars[key])>0:
+                    uvars[key]=uvars[key]+";"+val
+                    cnt=cnt+1
+                else:
+                    uvars[key] = val
+            else:
+                uvars[key] = eval(val)
+        else:
+            raise Exception('Unknown key "%(key)s"' % vars())
+#    print(cnt)
+    if 'inputlist' in uvars and os.path.isfile(uvars['inputlist']):
+        with open(uvars['inputlist']) as f_input: 
+            data_list=f_input.read()
+        filenames_list=";".join(k.strip() for k in data_list.split("\n") if k.strip())
+        if 'filename' in uvars and len(uvars['filename'])>0: 
+            uvars['filename']=uvars['filename']+";"+filenames_list
+        else:
+            uvars['filename']=filenames_list
+    if 'filename' in uvars and uvars['filename'].find(";") >-1: 
+        uvars['filename']=uvars['filename'].replace('"','')
+    if uvars['operation'] not in table_dss.keys():
+        raise Exception('Unknown operation "%s"' % uvars['operation'])
+#    if table[uvars['operation']] not in ['getcaps', 'getid', 'getstats', 'ping', 'release', 'reload', 'testcache', 'teststore'] and not uvars['filename']: raise Exception, 'Need filename'
+    if table_dss[uvars['operation']] not in o_no_filename and not uvars['filename']:
+        raise Exception('Need filename')
+    if uvars['server'].find("://") >-1: 
+        (protocol,server)=uvars['server'].split("://")
+        if protocol=='https': 
+            uvars['secure']=True
+        else: 
+            uvars['secure']=False 
+        uvars['server']=server
+    #if not uvars['username']:
+    #    print('WARNING: username is not provided, tickets will not be used')
+
+    read_access_file(filename=uvars['accessfile'])
+    delete_tickets()
+    if uvars['server'] and uvars['username']:
+        ticket = find_ticket(uvars['server'], uvars['username'])
+        if ticket:
+            init_cookie = {'server':uvars['server'], 'username':uvars['username'], 'ticket':ticket}
+
+    ds_connect = DataIO(uvars['server'], debug=uvars['debug'], secure=uvars['secure'], certfile=uvars['certfile'], timeout=uvars['timeout'],
+                        looptime=uvars['looptime'], logfile=uvars['logfile'], username=uvars['username'], password=uvars['password'], cookie=init_cookie)
+    errormes = ''
+    try:
+        if uvars['filename']:
+            fd = None
+            if uvars['fd']:
+                fd = open(uvars['fd'], 'w')
+            if uvars['query']:
+                result = getattr(ds_connect, table_dss[uvars['operation']])(path=uvars['filename'], savepath=uvars['localfilename'], 
+                                query=uvars['query'], fd=fd)
+            elif uvars['operation'] in 'make_local_asy':
+                filenames_makelocal=uvars['filename'].split(";")
+                n_files=len(filenames_makelocal)
+#                print(n_files)
+                if n_files>100:
+                    result={}
+                    count=0
+                    while True: 
+                        i_min=count*100
+                        i_max=(count+1)*100
+                        if i_min > n_files:
+                            break
+                        if i_max > n_files:
+                            i_max=n_files+1
+                        inp_filelist=";".join(filenames_makelocal[i_min:i_max])
+                        if len(inp_filelist)>0:
+                            result_i = getattr(ds_connect, table_dss[uvars['operation']])(path=inp_filelist, savepath=uvars['localfilename'], 
+                                                fd=fd)
+#                            print('Result:',inp_filelist,result_i)
+                            output_dict = ast.literal_eval(result_i)
+                            for key in list(output_dict.keys()):
+                                result[key]=output_dict[key]
+                        count=count+1 
+                        if i_max > n_files:
+                            break
+#                    print(len(result.keys()))
+                    result=str(result)
+                else:
+                    result = getattr(ds_connect, table_dss[uvars['operation']])(path=uvars['filename'], savepath=uvars['localfilename'], fd=fd)
+            else:
+                result = getattr(ds_connect, table_dss[uvars['operation']])(path=uvars['filename'], savepath=uvars['localfilename'], fd=fd)
+        else:
+            result = getattr(ds_connect, table_dss[uvars['operation']])()
+    except Exception as errmes:
+        errormes = str(errmes)
+        if ds_connect.response:
+            errormes += ' DSS Server message:'
+            errormes += str(ds_connect.response.reason)
+        result = None
+#        traceback.print_tb(sys.exc_info()[2])
+    if errormes:
+        #        message("operation %s failure!  Reason: %s" %(uvars['operation'], errmes))
+        messageIAL(uvars['operation'], uvars['filename'], uvars['localfilename'], False, errormes)
+    elif uvars['operation'] in ['ping']:
+        messageIAL(uvars['operation'], uvars['filename'], uvars['localfilename'], result, errormes)
+    elif uvars['operation'] in ['dssinit']:
+        ticket = ds_connect.cookie['ticket']
+        cookie_server = ds_connect.cookie['server']
+        validity = (datetime.datetime.strptime(ds_connect.cookie['expires'], "%A, %d %B %Y %H:%M:%S GMT")-datetime.datetime(1970,1,1)).total_seconds()
+        add_ticket(cookie_server, uvars['username'], ticket, validity)
+        write_access_file(filename=uvars['accessfile'])
+        messageIAL(uvars['operation'], uvars['filename'], uvars['localfilename'], result, errormes)
+    elif uvars['operation'] in ['dssinitforce']:
+        ticket = ds_connect.cookie['ticket']
+        cookie_server = ds_connect.cookie['server']
+        validity = (datetime.datetime.strptime(ds_connect.cookie['expires'], "%A, %d %B %Y %H:%M:%S GMT")-datetime.datetime(1970,1,1)).total_seconds()
+        delete_ticket(cookie_server, uvars['username'])
+        add_ticket(cookie_server, uvars['username'], ticket, validity)
+        write_access_file(filename=uvars['accessfile'])
+        messageIAL(uvars['operation'], uvars['filename'], uvars['localfilename'], result, errormes)
+    else:
+        #        message("operation %s success!  Result: %s" %(uvars['operation'], result))
+        if uvars['operation'] in ['dsstestnetwork', 'dsstestconnection', 'make_local_asy']:
+            errormes = result
+        messageIAL(uvars['operation'], uvars['filename'], uvars['localfilename'], True, errormes)
+
+
+if __name__ == '__main__':
+#    t1=time.time()
+    main()
+#    t2=time.time()
+#    print(t2-t1)
+#    ass=[]
+#    for i in range(10):
+#        os.remove('/root/.dssaccess')
+#        t1 = time.time()
+#        main()
+#        t2 = time.time()
+#        ass.append(t2-t1)
+#    print(ass)

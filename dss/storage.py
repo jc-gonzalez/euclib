@@ -3,7 +3,8 @@ import time
 from urllib.parse import urlencode
 
 from dss.dataio import DataIO
-from dss.dssserver_client import message, fetch_file_from_dataserver
+from dss.file_util import message
+from dss.dss_rqsts import fetch_file_from_dataserver
 
 
 class Storage(DataIO):
