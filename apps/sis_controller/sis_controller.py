@@ -106,6 +106,9 @@ def getArgs():
                         help='Configuration file to use')
     parser.add_argument('-d', '--debug', dest='debug', action='store_true',
                         help='Activated debug information')
+    parser.add_argument('-r', '--reuse_folders', dest='reuse_folders', action='store_true',
+                        help='Reuse existing folders, avoid overwriting them')
+
     return parser.parse_args()
 
 def greetings():
@@ -114,7 +117,7 @@ def greetings():
     :return: -
     """
     logger.info("==============================================================================")
-    logger.info("SIS-Controller - SIS data circulation controller - Proof of concept")
+    logger.info("SIS-Controller - SIS data circulation controller")
     logger.info("{}".format(__copyright__))
     logger.info("Last update {}".format(__date__))
     logger.info("Created by {} - {}".format(__author__, __email__))
@@ -128,6 +131,7 @@ def main():
 
     # Parse command line arguments
     args = getArgs()
+    recreate_folders = not args.reuse_folders
 
     # Set up homogeneous logging system
     configureLogs(logging.DEBUG if args.debug else logging.INFO)
@@ -140,7 +144,8 @@ def main():
     time_start = time.time()
 
     # Create and launch controller
-    ctrl = Controller(args.config_file)
+    ctrl = Controller(cfg_file=args.config_file,
+                      create_folders=recreate_folders)
     ctrl.run()
 
     # End time, closing

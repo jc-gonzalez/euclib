@@ -26,7 +26,7 @@ STRING = str
 
 #----------------------------------------------------------------------
 
-from .dirwatcher import define_dir_watcher
+from tools.dirwatcher import define_dir_watcher
 from .actions import ActionsLauncher
 
 import time
@@ -82,13 +82,13 @@ class Controller:
 
     LoopSleep = 1.0
 
-    def __init__(self, cfg_file):
+    def __init__(self, cfg_file, create_folders=True):
         self.queues = []
         self.cfg = self.loadConfiguration(file=cfg_file)
         self.baseDir = self.cfg['base_path']
         self.dirWatchers = []
         self.launcher = ActionsLauncher(self.baseDir)
-        pprint(self.cfg)
+        self.create_folders = create_folders
 
     @staticmethod
     def loadConfiguration(file):
@@ -170,7 +170,7 @@ class Controller:
         self.dirWatchers.append(dwThrA)
         #self.dirWatchers.append(dwThrB)
 
-    def createFolders(self, cfg : dict):
+    def createFolders(self, cfg : dict, create_folders=False):
         """
         Ensure the folders exist
         :return: -
@@ -182,7 +182,8 @@ class Controller:
         identifiers = dict(cfg['id'])
 
         # Create main folders, and read-me files
-        for elem, acronym in identifiers.items():
+        idents = identifiers if create_folders else {}
+        for elem, acronym in idents:
             actualId = acronym.replace('_','/')
             for ep in ['in', 'out']:
                 endPoint = '{}/{}/{}'.format(basePath, actualId, ep)
@@ -199,7 +200,7 @@ class Controller:
         # Create folders for flow transfer, according to configuration file
         for dflow in list(cfg['data_flows']):
             flowName = dflow['group']
-            logger.info('Creating folders for flow {}'.format(flowName))
+            logger.info('Setting up folders for flow {}'.format(flowName))
             for dataId, dataSpec in dflow['flows'].items():
                 datasetName = dataSpec['name']
                 logger.info('- Data set {}'.format(datasetName))
@@ -212,7 +213,7 @@ class Controller:
                 inSrcElem = fromId.replace('_','/')
                 fromEndPoint = '{}/in/{}'.format(inSrcElem, dataId)
                 circSourceDir = os.path.join(basePath, fromEndPoint)
-                self.createIfNotExists(circSourceDir)
+                if create_folders: self.createIfNotExists(circSourceDir)
 
                 circTargetDirs = []
                 toEndPoints = []
@@ -221,19 +222,20 @@ class Controller:
                     outSrcElem = toId.replace('_','/')
                     toEndPoint = '{}/out/{}'.format(outSrcElem, dataId)
                     circTargetDir = os.path.join(basePath, toEndPoint)
-                    self.createIfNotExists(circTargetDir)
+                    if create_folders: self.createIfNotExists(circTargetDir)
 
                     circTargetDirs.append(circTargetDir)
                     toEndPoints.append(toEndPoint)
 
                 self.initMonitoring(circSourceDir, toEndPoints, init_actions=True, archive=True)
 
-                logger.info('>>> {}::{} : {} => {}'.format(flowName, datasetName,
+                logger.debug('>>> {}::{} : {} => {}'.format(flowName, datasetName,
                                                            fromEndPoint, ';'.join(toEndPoints)))
 
         # Create additional, management folders
-        for d in ['local_archive']:
-            self.createIfNotExists(os.path.join(self.baseDir, d))
+        if create_folders:
+            for d in ['local_archive']:
+                self.createIfNotExists(os.path.join(self.baseDir, d))
 
     def monitor(self):
         """
@@ -268,7 +270,7 @@ class Controller:
         """
 
         # Create / List folders
-        self.createFolders(self.cfg)
+        self.createFolders(cfg=self.cfg, create_folders=self.create_folders)
 
         # Run main loop
         self.runMainLoop()
@@ -287,7 +289,7 @@ class Controller:
         try:
             while True:
                 iteration = iteration + 1
-                logger.info('Iteration {}'.format(iteration))
+                logger.debug('Iteration {}'.format(iteration))
 
                 # Perform check of queues
                 self.monitor()
