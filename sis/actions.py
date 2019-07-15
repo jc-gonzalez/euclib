@@ -248,6 +248,9 @@ class ActionsLauncher:
                 arcDir = os.path.join(self.basePath, 'local_archive')
                 logger.debug('{} => {}'.format(from_file, arcDir))
                 tx.file(from_file).toDir(arcDir).link()
+            elif action == 'move':
+                tgtDirs = os.path.join(self.basePath, act_vars['tgt_dir'])
+                tx.file(from_file).toDir(tgtDirs[0]).move()
             elif action == 'distribute':
                 tgtDirs = [os.path.join(self.basePath,x) for x in act_vars['tgt_dir']]
                 tx.file(from_file).toDir(tgtDirs[0]).move_and_set()
