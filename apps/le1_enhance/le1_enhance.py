@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-'''le1_enhance.py
+"""le1_enhance.py
 
 From a configuration file, retrieve data for a given set of parameters
 and enhance the metadata of the specified LE1 (VIS and NISP) products
@@ -37,7 +37,7 @@ Sample config. file (le1_enh.json):
             "NDW00001": {
                 "parameter": "NDW00001",
                 "timespan": { "type": "observation" },
-                "dataset": { "mode": "summary" }
+                "dataset": { "mode": "summary"
             },
             "NDW00138c": {
                 "parameter": "NDW00138",
@@ -53,7 +53,7 @@ Sample config. file (le1_enh.json):
 Sample command line:
 $ python3 ./le1_enhance.py -d ./in -o ./out -c ./le1_enh.json
 
-'''
+"""
 
 # make print & unicode backwards compatible
 from __future__ import print_function
@@ -77,7 +77,7 @@ from fnamespec.fnamespec.fnamespec import ProductMetadata
 from datetime import datetime, timedelta
 from utime.utime import datetime_to_ms, unix_ms_to_datestr
 from shutil import copyfile
-from astropy.table import Table
+#from astropy.table import Table
 from astropy.io import fits
 
 import ares.pyares as pa
@@ -86,7 +86,7 @@ import numpy as np
 import argparse
 import glob
 import json
-import time
+#import time
 
 import logging
 logger = logging.getLogger()
@@ -145,11 +145,11 @@ def configureLogs():
         if not lgr.handlers: lgr.addHandler(c_handler)
 
 def get_args():
-    '''
+    """
     Parse arguments from command line
 
     :return: args structure
-    '''
+    """
     parser = argparse.ArgumentParser(description='Test script to enhance LE1 products',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-c', '--config', dest='config_file',
@@ -217,36 +217,40 @@ def splitFileName(file):
     fileinit, file_ext = os.path.splitext(file)
     file_path = os.path.dirname(fileinit)
     file_bname = os.path.basename(fileinit)
-    return (file_path, file_bname + file_ext, file_bname, file_ext[1:])
+    return file_path, file_bname + file_ext, file_bname, file_ext[1:]
 
 #----------------------------------------------------------------------------
 # Class LE1_FilesMetadataEnhancer
 #----------------------------------------------------------------------------
 class LE1_FilesMetadataEnhancer:
-    '''
+    """
     Class to hold information and aggregation information for
     parmeters to be retrieved from HMS and stored as additional
     metadata into LE1 products.
-    '''
+    """
     logger = logging.getLogger(__name__ + '.LE1_AdditionalParameter')
     if not logger.handlers: logger.addHandler(logging.NullHandler())
 
     def __init__(self, files, enhcfg):
-        '''
+        """
         Initializer
         :param files: List of tuples with file names
         :param enhcfg: Configuration structure
-        '''
+        """
+        self.param_rqsts = {}
         self.file_set = files
         self.convertCfgToParamRqsts(enhcfg)
+        self.meta = None
+        self.creator = None
+        self.prodMeta = None
+        self.data_provider = None
 
     def convertCfgToParamRqsts(self, enhcfg):
-        '''
+        """
         Function to convert config. to param. requests
-        :param cfg: The parameters configuration
+        :param enhcfg: The parameters configuration
         :return: The parameters requests structure
-        '''
-        self.param_rqsts = {}
+        """
         for section in enhcfg['data'].keys():
             enhs = enhcfg['data'][section]
             p = {}
@@ -275,13 +279,13 @@ class LE1_FilesMetadataEnhancer:
 
             self.param_rqsts[section] = p
 
-    def getAggregator(self, aggr=Aggregator.Sum):
-        '''
+    @staticmethod
+    def getAggregator(aggr=Aggregator.Sum):
+        """
         Aggregate one array of values into one or more output data values
-        :param arr: Data values
         :param aggr: Aggregation method to use
         :return:
-        '''
+        """
         # Single parameter metrics
         if   aggr == Aggregator.Count:
             return lambda a : max(a.shape)
@@ -335,16 +339,18 @@ class LE1_FilesMetadataEnhancer:
         else:
             return lambda a : max(a.shape)
 
-    def aggregate(self, dataset, aggr_name, aggr):
-        '''
+    @staticmethod
+    def aggregate(dataset, aggr_name, aggr):
+        """
         Aggregate the dataset provided using the aggregator.
         For Single-parameter metrics, only the first parameter is used,
         For 2-parameter metrics, only the 2 first parameters are used.
         The rest of parameters, if any, are ignored (for the time being)
         :param dataset: The set of parameters (1 or 2)
+        :param aggr_name: The name of the aggregator
         :param aggr: The aggregator to use
         :return:
-        '''
+        """
         params = list(dataset.keys())
 
         if (aggr_name == Aggregator.Count or
@@ -378,7 +384,7 @@ class LE1_FilesMetadataEnhancer:
             return aggr(dataset[par1]['values']['data'],
                         dataset[par2]['values']['data'])
 
-        if (aggr_name == Aggregator.Linear):
+        if aggr_name == Aggregator.Linear:
             if len(params) < 2:
                 par = params[0]
                 return aggr(dataset[par]['timestamp']['data'],
@@ -389,7 +395,7 @@ class LE1_FilesMetadataEnhancer:
                 return aggr(dataset[par1]['values']['data'],
                             dataset[par2]['values']['data'])
 
-        if (aggr_name == Aggregator.Custom):
+        if aggr_name == Aggregator.Custom:
             if len(params) == 1:
                 par1 = params[0]
                 return aggr(dataset[par1]['values']['data'])
@@ -421,11 +427,11 @@ class LE1_FilesMetadataEnhancer:
         return None
 
     def getTimeSpanFromFile(self, file):
-        '''
+        """
         Get time range to use to retrieve parameter data
         :param file: Name of the input file
         :return: (t1, t2): Start and end time
-        '''
+        """
         self.meta = self.prodMeta.parse(file)
         self.creator = self.meta['creator']
         datetime_start = 0
@@ -443,14 +449,14 @@ class LE1_FilesMetadataEnhancer:
             pass
         else:
             logger.error('Processing function "{}" not known.'.format(self.creator))
-            return (None, None)
+            return None, None
 
-        return (datetime_start, datetime_end)
+        return datetime_start, datetime_end
 
     def getParamData(self, params, starttime, endtime, syselem='TM'):
-        '''
+        """
         Perform the retrieval of data for a given parameter and timespan
-        '''
+        """
         var_name = ''
         var_type = ''
 
@@ -514,15 +520,16 @@ class LE1_FilesMetadataEnhancer:
 
         return param_data
 
-    def storeNewPar(self, hdr, newpar, meta, newparkwd):
-        '''
+    @staticmethod
+    def storeNewPar(hdr, newpar, meta, newparkwd):
+        """
         Add the name, values and comments for a new parameter in the FITS header
         :param hdr: The HD Unit in the FITS file
         :param newpar: New parameter name
         :param meta: New metadata information for the new param.
         :param newparkwd: New parameters keyword prefix
         :return:
-        '''
+        """
         aggrdata = meta['aggr_data']
         aggrname = meta['aggr_name']
         if aggrdata:
@@ -557,13 +564,13 @@ class LE1_FilesMetadataEnhancer:
             logger.error('New metadata not found to store for "{}"'.format(newpar))
 
     def storeNewMetadata(self, file_tuple, new_meta):
-        '''
+        """
         Store the new metadata in the output file.  If an "original" file
         name is provided, a copy of the initial file is saved with that name.
         :param file_tuple: File input/output/original names
         :param new_meta: New generated metadata
         :return:
-        '''
+        """
         f_in, f_out, f_orig = file_tuple
         if f_orig:
             # Rename input file to original file name, and copy from that to output file
@@ -582,9 +589,9 @@ class LE1_FilesMetadataEnhancer:
             hdul.flush()
 
     def processFile(self, file_tuple):
-        '''
+        """
         Process the entire set of files
-        '''
+        """
         f_in, f_out, f_orig = file_tuple
         logger.info('Processing file {} . . .'.format(f_in))
 
@@ -624,9 +631,9 @@ class LE1_FilesMetadataEnhancer:
         logger.info('Ouptut written to {}'.format(f_out))
 
     def process(self):
-        '''
+        """
         Process the entire set of files
-        '''
+        """
 
         self.prodMeta = ProductMetadata()
 
@@ -641,9 +648,9 @@ class LE1_FilesMetadataEnhancer:
 
 
 def greetings(output_dir, file_list):
-    '''
+    """
     Says hello
-    '''
+    """
     logger.info('='*60)
     logger.info('le1_enchange - Add metadata to LE1 products from HMS parameters')
     logger.info('-'*60)
@@ -657,10 +664,10 @@ def greetings(output_dir, file_list):
 
 
 def processArgs(args):
-    '''
+    """
     Process arguments from command line
     :return: File list and configuration
-    '''
+    """
     # Compose input files list
     input_files = []
     if args.input_file:
@@ -701,16 +708,15 @@ def processArgs(args):
     input_files.clear()
 
     # Read configuration
-    enh_config = None
     with open(args.config_file, 'r') as cfgFp:
         enh_config = json.load(cfgFp)
 
     return file_list, output_dir, enh_config
 
 def main():
-    '''
+    """
     Main program
-    '''
+    """
     configureLogs()
 
     args = get_args()
