@@ -29,6 +29,8 @@
         { "group": "MOC FD / Other",
           "flows": { "data": { "name": "MOC FD / Other",
                                "circulation": "MOC=>ESS,SCS,EAS" },
+                     "edds": { "name": "HKTM",
+                               "circulation": "MOC=>HMS" },
                      "evt": { "name": "Evts. Def.",
                               "circulation": "ESS=>SCS" } }
         },
@@ -50,7 +52,7 @@
           "flows": { "sci": { "name": "Sci Data",
                                 "circulation": "MOC=>LE1" },
                      "edds": { "name": "HKTM",
-                               "circulation": "MOC=>HMS,LE1" },
+                               "circulation": "HMS=>LE1" },
                      "le1": { "name": "LE1 Products",
                               "circulation": "LE1=>EAS,QLA" } }
         },

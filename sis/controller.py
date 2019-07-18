@@ -60,25 +60,31 @@ class Controller:
     """
     Class Controller
 
-    Implements methods to monitor the different folders in the SOC IF implementation,
-    and controls the actions to take, according to the different action objects.
+    Implements methods to monitor the different folders in the SOC IF
+    implementation, and controls the actions to take, according to the
+    different action objects.
     """
 
-    # The following object is used as a template for the actions to be executed when a new file
-    # appears in the folder where it is placed.
-    # The 'type' can be:  'int' (internal), 'cmd', 'bash_script', 'python2' or
-    # 'python' (for Pyhton 3)
+    # The following object is used as a template for the actions to be
+    # executed when a new file appears in the folder where it is
+    # placed.
+    #
+    # The 'type' can be: 'int' (internal), 'cmd', 'bash_script',
+    # 'python2' or 'python' (for Pyhton 3)
+    #
     # In the 'args' item, the following variables are replaced:
     # - {file_name}: the base file of the new file
     # - {file_path}: the full file name, included the path, of the new file
-    # - {src_dir}: the source directory (the folder where the actions object is located
+    # - {src_dir}: the source dir, (the folder where the actions object is located)
     # - {tgt_dir}: the target directory, according to the config. file
     # - {this_dir}: the directory where the actions object file is located
     # - {base_dir}: the SOC IF base dir, according to the configuration
-    # The working directory for the execution of the script is the path where the actions object
-    # is located.
-    # At the initialization, an dummy actions object file is created.  Edit it and add blocks to
-    # the 'actions' array.
+    #
+    # The working directory for the execution of the script is the
+    # path where the actions object is located.
+    #
+    # At the initialization, an dummy actions object file is created.
+    # Edit it and add blocks to the 'actions' array.
 
     LoopSleep = 1.0
 
@@ -94,6 +100,7 @@ class Controller:
     def loadConfiguration(file):
         """
         Load configuration file
+        :param file: The path of the configuration file name
         :return: -
         """
         try:
@@ -103,17 +110,6 @@ class Controller:
             logger.error('Cannot open configuration file {}'.format(file))
             logger.fatal('{}'.format(ee))
             return None
-
-#        for grp in cfg['data_flows']:
-#            #gname = grp["group"]
-#            for flowId, spec in grp['flows'].items():
-#                #flowName = spec['name']
-#                circ = spec['circulation']
-#                from_to = circ.split('=>')
-#                from_elem = from_to[0]
-#                spec['single_flows'] = []
-#                for to_elem in from_to[1].split(','):
-#                    spec['single_flows'].append( (from_elem, to_elem) )
 
         return cfg
 
@@ -160,19 +156,17 @@ class Controller:
 
         # Launch monitoring
         qa = queue.Queue()
-        #qb = queue.Queue()
         dwThrA = define_dir_watcher(folderA, qa)
-        #dwThrB = define_dir_watcher(folderB, qb)
         self.queues.append({'from': folderA, 'to': folderB,
-                            'this_folder_is': 'from', 'queue': qa, 'thread': dwThrA})
-        #self.queues.append({'from': folderA, 'to': folderB,
-        #                    'this_folder_is': 'to', 'queue': qb, 'thread': dwThrB})
+                            'this_folder_is': 'from',
+                            'queue': qa, 'thread': dwThrA})
         self.dirWatchers.append(dwThrA)
-        #self.dirWatchers.append(dwThrB)
 
     def createFolders(self, cfg : dict, create_folders=False):
         """
         Ensure the folders exist
+        :param cfg: The configuration dictionary
+        :param create_folders: True, to create IO folders
         :return: -
         """
         basePath = cfg['base_path']
@@ -181,21 +175,27 @@ class Controller:
 
         identifiers = dict(cfg['id'])
 
+        ids = (identifiers if create_folders else {})
+
         # Create main folders, and read-me files
-        idents = identifiers if create_folders else {}
-        for elem, acronym in idents:
+        for elem, acronym in ids.items():
             actualId = acronym.replace('_','/')
             for ep in ['in', 'out']:
                 endPoint = '{}/{}/{}'.format(basePath, actualId, ep)
                 self.createIfNotExists(endPoint)
-            with open('{}/{}/README.md'.format(basePath, actualId), "w") as fp:
+            readmeFileName = '{}/{}/README.md'.format(basePath, actualId)
+            with open(readmeFileName, "w") as fp:
                 fp.write(("{} Exchange Folder\n" +
                           "============================\n\n" +
-                          "This Folder contains the input (`in`) and output (`out`) folders (from the perspective of\n" +
-                          "the SIS subsystem) to exchange data flows between external systems and SOC subsystems.\n" +
-                          "This data flow circulation is handled by the SIS subsystem.\n\n" +
-                          "The actions triggered by the appearance of an data file in the `in` folders are defined\n" +
-                          "in the appropriate `actions.json` files.\n\n").format(elem))
+                          "This Folder contains the input (`in`) and output \n" +
+                          "(`out`) folders (from the perspective of the SIS \n" +
+                          "subsystem) to exchange data flows between external \n" +
+                          "systems and SOC subsystems.\n" +
+                          "This data flow circulation is handled by the SIS \n" +
+                          "subsystem.\n\n" +
+                          "The actions triggered by the appearance of an data \n" +
+                          "file in the `in` folders are defined in the \n" +
+                          "appropriate `actions.json` files.\n\n").format(elem))
 
         # Create folders for flow transfer, according to configuration file
         for dflow in list(cfg['data_flows']):
@@ -227,10 +227,12 @@ class Controller:
                     circTargetDirs.append(circTargetDir)
                     toEndPoints.append(toEndPoint)
 
-                self.initMonitoring(circSourceDir, toEndPoints, init_actions=True, archive=True)
+                self.initMonitoring(circSourceDir, toEndPoints, \
+                                    init_actions=create_folders, archive=True)
 
                 logger.debug('>>> {}::{} : {} => {}'.format(flowName, datasetName,
-                                                           fromEndPoint, ';'.join(toEndPoints)))
+                                                           fromEndPoint,
+                                                            ';'.join(toEndPoints)))
 
         # Create additional, management folders
         if create_folders:
@@ -239,8 +241,8 @@ class Controller:
 
     def monitor(self):
         """
-        Check all the queues, looking for new entries, and launching the appropriate action
-        (according to the actions object file
+        Check all the queues, looking for new entries, and launching the
+        appropriate action (according to the actions object file
         :return: -
         """
         for item in self.queues:

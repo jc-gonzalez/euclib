@@ -64,7 +64,9 @@ __maintainer__ = "J C Gonzalez"
 
 def configureLogs(lvl):
     """
-    Function to configure the output of the log system, to be used across the entire application.
+    Function to configure the output of the log system, to be used across the
+    entire application.
+    :param lvl: Log level for the console log handler
     :return: -
     """
     logger.setLevel(logging.DEBUG)
