@@ -1,0 +1,3 @@
+include pyares/data/pyares.pkl
+include pyares/conf/pyares_conf.ini
+include pyares/data/venv.zip
