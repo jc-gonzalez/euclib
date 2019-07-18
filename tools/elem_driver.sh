@@ -29,7 +29,7 @@ ELEM_OUT_PATH=""
 
 # Parse command line Options
 while getopts :hci:o: OPT; do
-    case $OPT in
+    case ${OPT} in
         h|+h) usage ;;
         c|+c) CREATE_FOLDERS="yes" ;;
         i|+i) ELEM_IN_PATH="$OPTARG" ;;
@@ -64,7 +64,7 @@ else
     [ -d ${THISDIR}/archive ] || die 4 "Archive folder not set"
 fi
 
-python3 $SCRIPTDIR/elem_driver.py \
+python3 ${SCRIPTDIR}/elem_driver.py \
     -i ${THISDIR}/out -o ${THISDIR}/in \
     -I ${THISDIR}/scratch -O ${THISDIR}/archive \
     $*

@@ -74,7 +74,7 @@ die () {
     ec=$1
     shift
     say "ERROR: $*"
-    exit $ec
+    exit ${ec}
 }
 
 create_elem_emu_dir () {
@@ -99,7 +99,7 @@ cleaunp() {
 
 ##==== Parse command line
 while getopts :hs:i:c OPT; do
-    case $OPT in
+    case ${OPT} in
         h|+h) usage ;;
         s|+s) SOC_PATH="$OPTARG" ;;
         i|+i) SIS_IF_FROM="$OPTARG"; REUSE="-r" ;;
@@ -145,7 +145,7 @@ sed -i .orig \
     "${CFG_FILE}"
 
 ${PYTHON} ${EUCLIBAPPS}/sis_controller/sis_controller.py \
-    -c "${CFG_FILE}" $REUSE -d &
+    -c "${CFG_FILE}" ${REUSE} -d &
 
 sleep 1
 #exit 0
@@ -254,17 +254,17 @@ Y=0
 MAXX=$(( 1900 - DX ))
 MAXY=$(( 1200 - DY ))
 
-for fld in  $IOT_PATH $MOC_PATH $ECSRV_PATH \
-            $ESS_PATH $SCS_PATH $EAS_PATH \
-            $HMS_PATH $QLA_PATH $LE1_PATH ; do
+for fld in  ${IOT_PATH} ${MOC_PATH} ${ECSRV_PATH} \
+            ${ESS_PATH} ${SCS_PATH} ${EAS_PATH} \
+            ${HMS_PATH} ${QLA_PATH} ${LE1_PATH} ; do
 
-    elem=$(basename $fld)
+    elem=$(basename ${fld})
 
     # Open new terminal
     xterm -fn '-*-clean-medium-*-*-*-8-*-75-75-*-50-*-*' \
         -bg black -fg green -cr red \
-        -geometry ${WDTH}x${HGHT}+${X}+${Y} -title $elem \
-        -e ${EUCLIBTOOLS}/monitor-folder.sh $fld &
+        -geometry ${WDTH}x${HGHT}+${X}+${Y} -title ${elem} \
+        -e ${EUCLIBTOOLS}/monitor-folder.sh ${fld} &
     #& xtp=$!
     #xty=$(ps -o tty $(( xtp + 1 )) | tail -1)
 
@@ -273,10 +273,10 @@ for fld in  $IOT_PATH $MOC_PATH $ECSRV_PATH \
 
     # Update coordinates
     X=$(( X + DX ))
-    if [ $X -gt $MAXX ]; then
+    if [ ${X} -gt ${MAXX} ]; then
         X=0
         Y=$(( Y + DY ))
-        if [ $Y -gt $MAXY ]; then
+        if [ ${Y} -gt ${MAXY} ]; then
             break
         fi
     fi

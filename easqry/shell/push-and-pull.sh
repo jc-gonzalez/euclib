@@ -25,7 +25,7 @@ url_download=${url_vos}/servlet/data/
 CURL="curl -v -u ${user}:${pwd}"
 
 # Create sample file
-( echo $line; echo "This is the sample file"; date; echo $line ) | tee ${file_to_upl}
+( echo ${line}; echo "This is the sample file"; date; echo ${line} ) | tee ${file_to_upl}
 
 # Create job request files
 cat << EOFpush > pushToVoSpace.xml
@@ -56,7 +56,7 @@ echo "=============================================="
 
 pushRegFile=$(pwd)/pushToVoSpace.xml
 
-echo $line; echo "## 1 - JOB REGISTRATION"; echo $line
+echo ${line}; echo "## 1 - JOB REGISTRATION"; echo ${line}
 
 ## 1 - Job registration
 ${CURL} -X POST -F upload=@${pushRegFile} "${url_transfer}?PHASE=RUN" 2>&1 | tr -d '\r' | tee pushreg.out
@@ -66,14 +66,14 @@ echo "Job ID: ${job_id}"
 
 sleep 2
 
-echo $line; echo "## 2 - FILE UPLOAD"; echo $line
+echo ${line}; echo "## 2 - FILE UPLOAD"; echo ${line}
 
 ## 2 - Upload of file
 ${CURL} -X POST -F "file=@${file_to_upl}" "${url_upload}/${user}/${job_id}" 2>&1 | tr -d '\r' | tee pushupl.out
 
 sleep 2
 
-echo $line; echo "## 3 - JOB DELETION"; echo $line
+echo ${line}; echo "## 3 - JOB DELETION"; echo ${line}
 
 ## 3 - Job deletion
 ${CURL} -X DELETE "${url_transfer}/${job_id}" 2>&1 | tr -d '\r' | tee pushdel.out
@@ -88,7 +88,7 @@ echo "=============================================="
 
 pullRegFile=$(pwd)/pullFromVoSpace.xml
 
-echo $line; echo "## 1 - JOB REGISTRATION"; echo $line
+echo ${line}; echo "## 1 - JOB REGISTRATION"; echo ${line}
 
 ## 1 - Job registration
 ${CURL} -X POST -F download=@${pullRegFile} "${url_transfer}?PHASE=RUN" 2>&1 | tr -d '\r' | tee pullreg.out
@@ -98,19 +98,19 @@ echo "Job ID: ${job_id}"
 
 sleep 2
 
-echo $line; echo "## 2 - FILE UPLOAD"; echo $line
+echo ${line}; echo "## 2 - FILE UPLOAD"; echo ${line}
 
 ## 2 - Upload of file
 ${CURL} -X GET "${url_download}/${user}/${job_id}" > ${file_to_dwnl}
 
 sleep 2
 
-echo $line; echo "## 3 - JOB DELETION"; echo $line
+echo ${line}; echo "## 3 - JOB DELETION"; echo ${line}
 
 ## 3 - Job deletion
 ${CURL} -X DELETE "${url_transfer}/${job_id}" 2>&1 | tr -d '\r' | tee pulldel.out
 
-echo $line ; echo "Comparing uploaded and downloaded files . . ."
+echo ${line} ; echo "Comparing uploaded and downloaded files . . ."
 
 cmp ${file_to_upl} ${file_to_dwnl} && echo "  => files are identical" || echo "  => files differ"
 
