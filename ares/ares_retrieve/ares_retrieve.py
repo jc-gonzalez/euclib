@@ -191,12 +191,21 @@ class Retriever(object):
             self.from_pid_blk, self.to_pid_blk, self.pid_blk = (1, 1, 1)
             self.name = 'PARAM'
 
-        self.year1, self.doy1, self.hour1, self.min1, self.sec1, msec = from_date
+        logger.info(f'From date {from_date} to date {to_date}')
+        if len(from_date) == 6:
+            self.year1, self.doy1, self.hour1, self.min1, self.sec1, msec = from_date
+        else:
+            self.year1, mnth, mday, self.hour1, self.min1, self.sec1, msec = from_date
+            self.year1, self.doy1 = ymd_to_ydoy(self.year1, mnth, mday)
         self.timestamp_start = unix_ydoy_to_ms(self.year1, self.doy1, self.hour1, self.min1, self.sec1, msec)
         self.sec1 = self.sec1 + msec * 0.001
         year, self.month1, self.day1 = ydoy_to_ymd(self.year1, self.doy1)
 
-        self.year2, self.doy2, self.hour2, self.min2, self.sec2, msec = to_date
+        if len(to_date) == 6:
+            self.year2, self.doy2, self.hour2, self.min2, self.sec2, msec = to_date
+        else:
+            self.year2, mnth, mday, self.hour2, self.min2, self.sec2, msec = to_date
+            self.year2, self.doy2 = ymd_to_ydoy(self.year2, mnth, mday)
         self.timestamp_end = unix_ydoy_to_ms(self.year2, self.doy2, self.hour2, self.min2, self.sec2, msec)
         self.sec2 = self.sec2 + msec * 0.001
         year, self.month2, self.day2 = ydoy_to_ymd(self.year2, self.doy2)
@@ -574,7 +583,7 @@ class Retriever(object):
 def main():
     retriever = Retriever(cfg_file='./retrieval_config.ini', rqst_mode='pid',
                           from_pid=1, to_pid=10000, pids_block=10000,
-                          from_date=(2018,134,12,34,56), to_date=(2018,135,12,34,56),
+                          from_date=(2018,134,12,34,56,0), to_date=(2018,135,12,34,56,0),
                           output_dir='./')
 
 
