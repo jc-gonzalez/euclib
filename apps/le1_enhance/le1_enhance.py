@@ -85,6 +85,7 @@ import numpy as np
 
 import argparse
 import glob
+
 import json
 #import time
 
@@ -433,6 +434,9 @@ class LE1_FilesMetadataEnhancer:
         :return: (t1, t2): Start and end time
         """
         self.meta = self.prodMeta.parse(file)
+        if self.meta is None:
+            logger.fatal('Could not get metadata information from file name ' + file)
+
         self.creator = self.meta['creator']
         datetime_start = 0
         datetime_end = 0
