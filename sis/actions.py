@@ -31,9 +31,11 @@ import subprocess
 import shutil
 import traceback
 
-#from pprint import pprint
+from pprint import pprint
 
-from enum import Enum
+import pytest
+
+from .filetx import Tx
 
 import logging
 logger = logging.getLogger()
@@ -53,97 +55,6 @@ __maintainer__ = "J C Gonzalez"
 #__url__       = ""
 
 #----------------------------------------------------------------------
-
-class TxMode(Enum):
-    """
-    Mode to transfer files
-    """
-    MOVE      = 'move'
-    MOVE_ORIG = 'move_orig'
-    LINK      = 'link'
-    COPY      = 'copy'
-
-class Tx:
-    """
-    Class to perform a transfer of a file
-    """
-    def __init__(self):
-        """
-        Initialization of Tx class
-        """
-        self.file_full = None
-        self.to_dir = None
-
-    def file(self, pth):
-        """
-        Set file to transfer
-        :param pth: Full file path
-        :return: -
-        """
-        self.file_full = pth
-        return self
-
-    def toDir(self, pth):
-        """
-        Set target directory
-        :param pth: File path
-        :return: -
-        """
-        self.to_dir = pth
-        return self
-
-    def move(self):
-        """
-        Move the file
-        :return: -
-        """
-        return self.go(mode=TxMode.MOVE)
-
-    def move_and_set(self):
-        """
-        Move the file, and set as the new source
-        :return: -
-        """
-        return self.go(mode=TxMode.MOVE_ORIG)
-
-    def copy(self):
-        """
-        Copy the file
-        :return: -
-        """
-        return self.go(mode=TxMode.COPY)
-
-    def link(self):
-        """
-        Link the file
-        :return: -
-        """
-        return self.go(mode=TxMode.LINK)
-
-    def go(self, mode=TxMode.MOVE):
-        """
-        Make the relocation
-        :param mode: The way to perform the relocation
-        :return:
-        """
-        if mode == TxMode.COPY:
-            new_file = os.path.join(self.to_dir, os.path.basename(self.file_full))
-            shutil.copy(self.file_full, new_file + '.part')
-            shutil.move(new_file + '.part', new_file)
-        elif mode == TxMode.MOVE or mode == TxMode.MOVE_ORIG:
-            new_file = os.path.join(self.to_dir, os.path.basename(self.file_full))
-            shutil.move(self.file_full, new_file + '.part')
-            shutil.move(new_file + '.part', new_file)
-            if mode == TxMode.MOVE_ORIG:
-                self.file_full = new_file
-        elif mode == TxMode.LINK:
-            new_file = os.path.join(self.to_dir, os.path.basename(self.file_full))
-            os.link(self.file_full, new_file)
-        else:
-            logger.error('Transfer mode not known!')
-
-        return self
-
 
 # The following object is used as a template for the actions to be executed when a new file
 # appears in the folder where it is placed.
@@ -188,10 +99,26 @@ class ActionsLauncher:
                                 'command': 'distribute',
                                 'args': ''}
 
+    ActionInternalMove = {'id': 'move',
+                          'type': 'int',
+                          'command': 'move',
+                          'args': ''}
+
     ActionInternalSaveLocalArch = {'id': 'archive',
                                    'type': 'int',
                                    'command': 'archive',
                                    'args': ''}
+
+    ActionInternalRemoteCopy = {'id': 'remote_copy',
+                                'type': 'int',
+                                'command': 'remote_copy',
+                                'host': '',
+                                'user': '',
+                                'pwd': '',
+                                'tgt_dir': '',
+                                'args': ''}
+
+    ActionInternalRemoteMove = ActionInternalRemoteCopy.update({'id': 'remote_move'})
 
     def __init__(self, basePath):
         self.basePath = basePath
@@ -226,6 +153,72 @@ class ActionsLauncher:
             logger.error('Running in ')
             return False
 
+    def runia_archive(self, from_file):
+        """
+        Run Internal Action: Archive file
+        :param from_file: The file to archive
+        :return: -
+        """
+        arcDir = os.path.join(self.basePath, 'local_archive')
+        logger.debug('{} => {}'.format(from_file, arcDir))
+        tx = Tx()
+        tx.file(from_file).toDir(arcDir).link()
+
+    def runia_move(self, from_file, to_folder):
+        """
+        Run Internal Action: Move file to another folder
+        :param from_file: The file to move
+        :param to_folder: The directory where to move the file
+        :return: -
+        """
+        if isinstance(to_folder, list):
+            fld = to_folder[0]
+        else:
+            fld = to_folder
+        if not fld: return
+        tgtDir = fld if fld[0] == '/' \
+                 else os.path.join(self.basePath, fld)
+        logger.debug('Distribute: {} => {}'.format(from_file, tgtDir))
+        tx = Tx()
+        tx.file(from_file).toDir(tgtDir).move()
+
+    def runia_distribute(self, from_file, to_folders):
+        """
+        Run Internal Action: Distribute file to multiple folders
+        :param from_file: The file to distribute
+        :param to_folders: List of directories where to distribute the file
+        :return: -
+        """
+        if not to_folders[0]: return
+        tgtDirs = to_folders if to_folders[0][0] == '/' \
+                  else [os.path.join(self.basePath, x) for x in to_folders]
+        logger.debug('Distribute: {} => {}'.format(from_file, ','.join(tgtDirs)))
+        tx = Tx()
+        tx.file(from_file).toDir(tgtDirs[0]).move_and_set()
+        for tgtDir in tgtDirs[1:]:
+            tx.toDir(tgtDir).link()
+
+    def runia_remote_copy(self, from_file, host, user, pwd, folder, is_move=False):
+        """
+        Run Internal Action: Copy/Move file to a folder in another host
+        :param from_file: The file to move
+        :param host: The remote host
+        :param user: The remote user
+        :param pwd: The password for that user
+        :param folder: The directory where to put the file in the host
+        :param is_move: True, to move the file (instead of copy)
+        :return: -
+        """
+        logger.debug('RemoteCopy: {} =>{}:{}@{}:{} ({})'\
+                     .format(from_file, user, pwd, host, folder,
+                             ('MOVE' if is_move else 'COPY')))
+        tx = Tx()
+        txx = tx.file(from_file).host(host).user(user).pwd(pwd).toDir(folder)
+        if is_move:
+            txx.move()
+        else:
+            txx.copy()
+
     def runInternalAction(self, action='action', args='', act_vars=None):
         """
         Run an internal action
@@ -237,25 +230,26 @@ class ActionsLauncher:
         if act_vars is None: act_vars = {}
         dirs = [os.path.join(self.basePath, x) for x in args.split(';')]
         logger.debug('Running internal action: {} {}'.format(action, dirs))
-
+        logger.debug(json.dumps(act_vars))
+        if args: act_vars['tgt_dir'] = dirs
         from_file = act_vars['file_path']
-        tx = Tx()
-        #pprint(env)
-        #pprint(args)
 
         try:
             if action == 'archive':
-                arcDir = os.path.join(self.basePath, 'local_archive')
-                logger.debug('{} => {}'.format(from_file, arcDir))
-                tx.file(from_file).toDir(arcDir).link()
+                self.runia_archive(from_file=from_file)
             elif action == 'move':
-                tgtDirs = os.path.join(self.basePath, act_vars['tgt_dir'])
-                tx.file(from_file).toDir(tgtDirs[0]).move()
+                self.runia_move(from_file=from_file,
+                                to_folder=act_vars['tgt_dir'])
             elif action == 'distribute':
-                tgtDirs = [os.path.join(self.basePath,x) for x in act_vars['tgt_dir']]
-                tx.file(from_file).toDir(tgtDirs[0]).move_and_set()
-                for tgtDir in tgtDirs[1:]:
-                    tx.toDir(tgtDir).link()
+                self.runia_distribute(from_file=from_file,
+                                      to_folders=act_vars['tgt_dir'])
+            elif action in ('remote_copy', 'remote_move'):
+                self.runia_remote_copy(from_file=from_file,
+                                       host=act_vars['host'],
+                                       user=act_vars['user'],
+                                       pwd=act_vars['pwd'],
+                                       folder=act_vars['tgt_dir'],
+                                       is_move=(action=='remote_move'))
         except:
             traceback.print_exc(file=sys.stdout)
 
@@ -331,6 +325,154 @@ class ActionsLauncher:
                     return
 
                 self.runCommand(act=actId, cmd=fullCmd, workdir=folder, shell=(actType == 'cmd'))
+
+## TESTS
+
+import random, string
+
+def rndStr(n=8):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=n))
+
+def tmpDirName(n=8):
+    return os.path.join(os.getenv('HOME'), '.test', rndStr(n))
+
+class TestActionsLauncher:
+
+    @pytest.fixture
+    def base_path(self):
+        baseDir = tmpDirName()
+        os.makedirs(baseDir)
+        os.makedirs(os.path.join(baseDir, 'local_archive'))
+        yield baseDir
+        shutil.rmtree(baseDir)
+
+    @pytest.fixture
+    def internal_action_distribute_folder(self):
+        tmpDir = tmpDirName()
+        os.makedirs(tmpDir)
+        acts = {
+            'last_update': '',
+            'history': ['Test actions file'],
+            'actions': [ActionsLauncher.ActionInternalDistribute]
+        }
+        # Configure internal distribute action
+        acts['actions'][0]['args'] = '{0}/dist1;{0}/dist2'.format(tmpDir)
+
+        tmpFile = os.path.join(tmpDir, 'actions.json')
+        with open(tmpFile, 'w') as fa:
+            json.dump(acts, fa, indent=4)
+
+        yield tmpDir
+        shutil.rmtree(tmpDir)
+
+    @pytest.fixture
+    def internal_action_move_folder(self):
+        tmpDir = tmpDirName()
+        os.makedirs(tmpDir)
+        acts = {
+            'last_update': '',
+            'history': ['Test actions file'],
+            'actions': [ActionsLauncher.ActionInternalMove]
+        }
+        # Configure internal move action
+        acts['actions'][0]['args'] = "{0}/mv;".format(tmpDir)
+
+        tmpFile = os.path.join(tmpDir, 'actions.json')
+        with open(tmpFile, 'w') as fa:
+            json.dump(acts, fa, indent=4)
+
+        yield tmpDir
+        shutil.rmtree(tmpDir)
+
+    @pytest.fixture
+    def internal_action_archive_folder(self):
+        tmpDir = tmpDirName()
+        os.makedirs(tmpDir)
+        acts = {
+            'last_update': '',
+            'history': ['Test actions file'],
+            'actions': [ActionsLauncher.ActionInternalSaveLocalArch]
+        }
+
+        tmpFile = os.path.join(tmpDir, 'actions.json')
+        with open(tmpFile, 'w') as fa:
+            json.dump(acts, fa, indent=4)
+
+        yield tmpDir
+        shutil.rmtree(tmpDir)
+
+    @pytest.fixture
+    def internal_action_remote_folder(self):
+        tmpDir = tmpDirName()
+        os.makedirs(tmpDir)
+        acts = {
+            'last_update': '',
+            'history': ['Test actions file'],
+            'actions': [ActionsLauncher.ActionInternalRemoteCopy,
+                        ActionsLauncher.ActionInternalRemoteMove]
+        }
+        # Configure internal remote copy action
+        credentials = {'host': 'eucdev.n1data.lan',
+                                'user': 'eucops',
+                                'pwd': 'eu314clid',
+                                'tgt_dir': '/tmp'}
+        acts['actions'][0].update(credentials)
+        credentials['tgt_dir'] = '/home/eucops'
+        acts['actions'][1].update(credentials)
+
+        tmpFile = os.path.join(tmpDir, 'actions.json')
+        with open(tmpFile, 'w') as fa:
+            json.dump(acts, fa, indent=4)
+
+        yield tmpDir
+        shutil.rmtree(tmpDir)
+
+    def create_dirs_and_file(self, tmpDir, dirs, fileno):
+        for d,subd in dirs.items():
+            for sd in subd:
+                fld = os.path.join(d, sd)
+                os.mkdir(fld)
+                logger.info('Folder {} created'.format(fld))
+
+        datFile = os.path.join(tmpDir, 'example{}.dat'.format(fileno))
+        with open(datFile, 'w') as fe:
+            fe.write('{"title": "Example file"}')
+
+        return datFile
+
+    def test_launch_internal_distribute_action(self, base_path, internal_action_distribute_folder):
+        baseDir = base_path
+        tmpDir = internal_action_distribute_folder
+        datFile = self.create_dirs_and_file(tmpDir, {tmpDir: ['dist1', 'dist2']}, 1)
+
+        actLnch = ActionsLauncher(basePath=baseDir)
+        actLnch.launchActions(folder=tmpDir, file=datFile, src_dir=tmpDir, tgt_dir=[''])
+
+        assert not os.path.exists(os.path.join(tmpDir, 'example1.dat'))
+        assert os.path.exists(os.path.join(tmpDir, 'dist1', 'example1.dat'))
+        assert os.path.exists(os.path.join(tmpDir, 'dist2', 'example1.dat'))
+
+    def test_launch_internal_move_action(self, base_path, internal_action_move_folder):
+        baseDir = base_path
+        tmpDir = internal_action_move_folder
+        datFile = self.create_dirs_and_file(tmpDir, {tmpDir: ['mv']}, 2)
+
+        actLnch = ActionsLauncher(basePath=baseDir)
+        actLnch.launchActions(folder=tmpDir, file=datFile, src_dir=tmpDir, tgt_dir=[''])
+
+        assert not os.path.exists(os.path.join(tmpDir, 'example2.dat'))
+        assert os.path.exists(os.path.join(tmpDir, 'mv', 'example2.dat'))
+
+    def test_launch_internal_archive_action(self, base_path, internal_action_archive_folder):
+        baseDir = base_path
+        tmpDir = internal_action_archive_folder
+        datFile = self.create_dirs_and_file(tmpDir, {tmpDir: []}, 3)
+
+        actLnch = ActionsLauncher(basePath=baseDir)
+        actLnch.launchActions(folder=tmpDir, file=datFile, src_dir=tmpDir, tgt_dir=[''])
+
+        assert os.path.exists(os.path.join(tmpDir, 'example3.dat'))
+        assert os.path.exists(os.path.join(baseDir, 'local_archive', 'example3.dat'))
 
 
 def main():
