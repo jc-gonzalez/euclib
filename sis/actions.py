@@ -215,9 +215,9 @@ class ActionsLauncher:
         tx = Tx()
         txx = tx.file(from_file).host(host).user(user).pwd(pwd).toDir(folder)
         if is_move:
-            txx.move()
+            txx.remote_move()
         else:
-            txx.copy()
+            txx.remote_copy()
 
     def runInternalAction(self, action='action', args='', act_vars=None):
         """
