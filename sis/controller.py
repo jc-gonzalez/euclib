@@ -27,7 +27,7 @@ STRING = str
 #----------------------------------------------------------------------
 
 from tools.dirwatcher import define_dir_watcher
-from .actions import ActionsLauncher
+from tools.actions import ActionsLauncher
 
 import time
 
@@ -88,9 +88,13 @@ class Controller:
 
     LoopSleep = 1.0
 
-    def __init__(self, cfg_file, create_folders=True):
+    def __init__(self, cfg_file, create_folders=True, base_path=None):
         self.queues = []
         self.cfg = self.loadConfiguration(file=cfg_file)
+        pprint(self.cfg['base_path'])
+        pprint(base_path)
+        if base_path:
+            self.cfg['base_path'] = base_path
         self.baseDir = self.cfg['base_path']
         self.dirWatchers = []
         self.launcher = ActionsLauncher(self.baseDir)
@@ -127,7 +131,63 @@ class Controller:
             logger.info('Folder {} already exists'.format(folder))
             return False
 
-    def initMonitoring(self, folderA, folderB, init_actions=True, archive=False):
+    @staticmethod
+    def idToPath(base, src, io, data):
+        """
+        Build the relative (if base is None) or the complete path for a
+        data flow folder
+        :param base: Base path for the entire folder structure
+        :param src: Source identifier
+        :param io: in/out
+        :param data: Data flow identifier
+        :return: The built path as a string
+        """
+        actualId = src.replace('_', '/')
+        relPath = os.path.join(actualId, io)
+        if data is not None:
+            relPath = os.path.join(relPath, data)
+        if base is None:
+            return relPath
+        else:
+            return os.path.join(base, relPath)
+
+    def createActions(self, src, tgts, acts):
+        """
+        Create the actions object file according to the internal and external provided,
+        and save it to file
+        :param src: The src subsystem
+        :param tgts: The target subsystem(s)
+        :param acts: Object with lists of internal and external action objects
+        :return: True if succeeded, False otherwise
+        """
+        # Initialize actions object from the template
+        actions = deepcopy(ActionsLauncher.ActionsObjectTpl)
+        actions['actions'].clear()
+
+        # Internal archive action (make it first)
+        if 'archive' in acts:
+            actions['actions'].append(ActionsLauncher.ActionInternalSaveLocalArch)
+            acts.remove('archive')
+
+        # Parse rest of actions
+        for act in acts:
+            if isinstance(act, dict):
+                actions['actions'].append(act)
+            else:
+                newAct = deepcopy(ActionsLauncher.InternalActions[act])
+                newAct['type'] = 'int'
+                newAct['args'] = ';'.join(tgts)
+                actions['actions'].append(newAct)
+
+        # Save actions file
+        try:
+            with open(os.path.join(src, 'actions.json'), 'w') as fact:
+                fact.write(json.dumps(actions, indent=4))
+            return True
+        except:
+            return False
+
+    def initMonitoring(self, folderA, folderB):
         """
         Create a dummy actions object file and launch monitoring
         :param folderA: The FROM folder to create
@@ -135,25 +195,6 @@ class Controller:
         :param init_actions: Create initial, dummy action object file
         :param archive: Add archive internal action if True
         """
-        # Create actions object file
-        if init_actions:
-            for folder in [folderA]:
-                # Sample external action
-                actions = deepcopy(ActionsLauncher.ActionsObjectTpl)
-
-                # Internal Archive action
-                if archive:
-                    actions['actions'].append(ActionsLauncher.ActionInternalSaveLocalArch)
-
-                # Internal Distribute action
-                distribAction = deepcopy(ActionsLauncher.ActionInternalDistribute)
-                distribAction['args'] = ';'.join(folderB)
-                actions['actions'].append(distribAction)
-
-                # Save actions file
-                with open(os.path.join(folder, 'actions.json'), 'w') as fact:
-                    fact.write(json.dumps(actions, indent=4))
-
         # Launch monitoring
         qa = queue.Queue()
         dwThrA = define_dir_watcher(folderA, qa)
@@ -162,15 +203,14 @@ class Controller:
                             'queue': qa, 'thread': dwThrA})
         self.dirWatchers.append(dwThrA)
 
-    def createFolders(self, cfg : dict, create_folders=False):
+    def initialize(self, cfg : dict, create_folders=False):
         """
         Ensure the folders exist
         :param cfg: The configuration dictionary
         :param create_folders: True, to create IO folders
         :return: -
         """
-        basePath = cfg['base_path']
-        logger.info('SIS Controller Base Path: {}'.format(basePath))
+        logger.info('SIS Controller Base Path: {}'.format(self.baseDir))
         logger.info('Ensuring the SIS folders exist under base path')
 
         identifiers = dict(cfg['id'])
@@ -179,11 +219,10 @@ class Controller:
 
         # Create main folders, and read-me files
         for elem, acronym in ids.items():
-            actualId = acronym.replace('_','/')
             for ep in ['in', 'out']:
-                endPoint = '{}/{}/{}'.format(basePath, actualId, ep)
+                endPoint = self.idToPath(self.baseDir, acronym, ep, None)
                 self.createIfNotExists(endPoint)
-            readmeFileName = '{}/{}/README.md'.format(basePath, actualId)
+            readmeFileName = self.idToPath(self.baseDir, acronym, 'README.md', None)
             with open(readmeFileName, "w") as fp:
                 fp.write(("{} Exchange Folder\n" +
                           "============================\n\n" +
@@ -205,33 +244,40 @@ class Controller:
                 datasetName = dataSpec['name']
                 logger.info('- Data set {}'.format(datasetName))
 
-                circ = dataSpec['circulation']
-                from_to = circ.split('=>')
-
-                from_elem = from_to[0]
-                fromId = identifiers[from_elem]
-                inSrcElem = fromId.replace('_','/')
-                fromEndPoint = '{}/in/{}'.format(inSrcElem, dataId)
-                circSourceDir = os.path.join(basePath, fromEndPoint)
+                from_elem = dataSpec['source']
+                circSourceDir = self.idToPath(self.baseDir, identifiers[from_elem], 'in', dataId)
                 if create_folders: self.createIfNotExists(circSourceDir)
 
                 circTargetDirs = []
                 toEndPoints = []
-                for to_elem in from_to[1].split(','):
-                    toId = identifiers[to_elem]
-                    outSrcElem = toId.replace('_','/')
-                    toEndPoint = '{}/out/{}'.format(outSrcElem, dataId)
-                    circTargetDir = os.path.join(basePath, toEndPoint)
+                for to_elem, acts in dataSpec['target'].items():
+                    idToElem = identifiers[to_elem]
+                    relTargetDir = self.idToPath(None, idToElem, 'out', dataId)
+                    circTargetDir = self.idToPath(self.baseDir, idToElem, 'out', dataId)
                     if create_folders: self.createIfNotExists(circTargetDir)
 
                     circTargetDirs.append(circTargetDir)
-                    toEndPoints.append(toEndPoint)
+                    toEndPoints.append(relTargetDir)
 
-                self.initMonitoring(circSourceDir, toEndPoints, \
-                                    init_actions=create_folders, archive=True)
+                    # Create actions for target subsystem
+                    if not self.createActions(circTargetDir, [], acts):
+                        logger.error('Could not create target folder actions for {} => {}'.\
+                                     format(from_elem, to_elem))
+
+                    # Initialize and launch monitoring for the each target folder
+                    self.initMonitoring(circTargetDir, [])
+
+                # Create actions for source subsystem
+                if not  self.createActions(circSourceDir, toEndPoints, dataSpec['actions']):
+                    logger.error('Could not create source folder actions for ' +
+                                 '{} => {}'.format(from_elem, ','.join(dataSpec['target'].keys())))
+
+                # Initialize and launch monitoring for the source folder
+                self.initMonitoring(circSourceDir, toEndPoints)
 
                 logger.debug('>>> {}::{} : {} => {}'.format(flowName, datasetName,
-                                                           fromEndPoint,
+                                                            #fromEndPoint,
+                                                            from_elem,
                                                             ';'.join(toEndPoints)))
 
         # Create additional, management folders
@@ -272,7 +318,7 @@ class Controller:
         """
 
         # Create / List folders
-        self.createFolders(cfg=self.cfg, create_folders=self.create_folders)
+        self.initialize(cfg=self.cfg, create_folders=self.create_folders)
 
         # Run main loop
         self.runMainLoop()

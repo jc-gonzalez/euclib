@@ -1,0 +1,480 @@
+{
+    "base_path": "/home/eucops/SOC-IF",
+    "id": {
+        "ECSrv": "ecsrv",
+        "IOT": "iot",
+        "MOC": "moc",
+        "SGS": "sgs",
+        "EAS": "soc_eas",
+        "ESS": "soc_ess",
+        "HMS": "soc_hms",
+        "LE1": "soc_le1",
+        "QLA": "soc_qla",
+        "SCS": "soc_scs",
+        "SIS": "soc_sis"
+    },
+    "data_flows": [
+        {
+            "group": "Instr.Cmd.Rqsts.",
+            "flows": {
+                "cmd": {
+                    "name": "Cmd.Rqsts",
+                    "source": "IOT",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "ESS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        },
+                        "SCS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "group": "Other IOT Data",
+            "flows": {
+                "iot": {
+                    "name": "IOT Data",
+                    "source": "IOT",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "MOC": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        },
+                        "EAS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "group": "Ref.Surv.Def.",
+            "flows": {
+                "srv": {
+                    "name": "EC Surv.",
+                    "source": "ECSrv",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "EAS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        },
+                        "ESS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "group": "MOC FD / Other",
+            "flows": {
+                "data": {
+                    "name": "MOC FD / Other",
+                    "source": "MOC",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "ESS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        },
+                        "SCS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        },
+                        "EAS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                },
+                "edds": {
+                    "name": "HKTM",
+                    "source": "MOC",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "HMS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                },
+                "evt": {
+                    "name": "Evts. Def.",
+                    "source": "ESS",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "SCS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "group": "SGS I/O",
+            "flows": {
+                "sgsio": {
+                    "name": "SGS data",
+                    "source": "SGS",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "EAS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "group": "Op.Sky.Surv.",
+            "flows": {
+                "oss": {
+                    "name": "Op.Sky.Surv.",
+                    "source": "ESS",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "EAS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                },
+                "ossq": {
+                    "name": "Op.Sky.Surv.Quality",
+                    "source": "EAS",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "ESS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "group": "Surv. Sched. Rqst.",
+            "flows": {
+                "ssr": {
+                    "name": "Surv. Sched. Rqst.",
+                    "source": "ESS",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "SCS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        },
+                        "MOC": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        },
+                        "QLA": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "group": "LE1",
+            "flows": {
+                "sci": {
+                    "name": "Sci Data",
+                    "source": "MOC",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "LE1": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                },
+                "edds": {
+                    "name": "HKTM",
+                    "source": "HMS",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "LE1": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                },
+                "le1": {
+                    "name": "LE1 Products",
+                    "source": "LE1",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "EAS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        },
+                        "QLA": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "group": "QLA I/O",
+            "flows": {
+                "qla": {
+                    "name": "QLA Reports",
+                    "source": "QLA",
+                    "actions": {
+                        "internal": ["archive", "distribute"],
+                        "external": [{
+                            "id": "list_file",
+                            "type": "cmd",
+                            "command": "/bin/ls",
+                            "args": "-l {this_dir}/{file_name}"
+                        }]
+                    },
+                    "target": {
+                        "HMS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        },
+                        "EAS": {
+                            "internal": [],
+                            "external": [{
+                                "id": "list_file",
+                                "type": "cmd",
+                                "command": "/bin/ls",
+                                "args": "-l {this_dir}/{file_name}"
+                            }]
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

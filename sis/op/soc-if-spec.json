@@ -14,51 +14,392 @@
         "SIS": "soc_sis"
     },
     "data_flows": [
-        { "group": "Instr.Cmd.Rqsts.",
-          "flows": { "cmd": { "name": "Cmd.Rqsts",
-                              "circulation": "IOT=>ESS,SCS" } }
+        {
+            "group": "Instr.Cmd.Rqsts.",
+            "flows": {
+                "cmd": {
+                    "name": "Cmd.Rqsts",
+                    "source": "IOT",
+                    "actions": [
+                        "archive",
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "ESS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ],
+                        "SCS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                }
+            }
         },
-        { "group": "Other IOT Data",
-          "flows": { "iot": { "name": "IOT Data",
-                              "circulation": "IOT=>MOC,EAS" } }
+        {
+            "group": "Other IOT Data",
+            "flows": {
+                "iot": {
+                    "name": "IOT Data",
+                    "source": "IOT",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "MOC": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ],
+                        "EAS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                }
+            }
         },
-        { "group": "Ref.Surv.Def.",
-          "flows": { "srv": { "name": "EC Surv.",
-                              "circulation": "ECSrv=>EAS,ESS" } }
+        {
+            "group": "Ref.Surv.Def.",
+            "flows": {
+                "srv": {
+                    "name": "EC Surv.",
+                    "source": "ECSrv",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "EAS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ],
+                        "ESS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                }
+            }
         },
-        { "group": "MOC FD / Other",
-          "flows": { "data": { "name": "MOC FD / Other",
-                               "circulation": "MOC=>ESS,SCS,EAS" },
-                     "edds": { "name": "HKTM",
-                               "circulation": "MOC=>HMS" },
-                     "evt": { "name": "Evts. Def.",
-                              "circulation": "ESS=>SCS" } }
+        {
+            "group": "MOC FD / Other",
+            "flows": {
+                "data": {
+                    "name": "MOC FD / Other",
+                    "source": "MOC",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "ESS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ],
+                        "SCS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ],
+                        "EAS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                },
+                "edds": {
+                    "name": "HKTM",
+                    "source": "MOC",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "HMS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                },
+                "evt": {
+                    "name": "Evts. Def.",
+                    "source": "ESS",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "SCS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                }
+            }
         },
-        { "group": "SGS I/O",
-          "flows": { "sgsio": { "name": "SGS data",
-                                "circulation": "SGS=>EAS" } }
+        {
+            "group": "SGS I/O",
+            "flows": {
+                "sgsio": {
+                    "name": "SGS data",
+                    "source": "SGS",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "EAS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                }
+            }
         },
-        { "group": "Op.Sky.Surv.",
-          "flows": { "oss": { "name": "Op.Sky.Surv.",
-                              "circulation": "ESS=>EAS" },
-                     "ossq": { "name": "Op.Sky.Surv.Quality",
-                               "circulation": "EAS=>ESS" } }
+        {
+            "group": "Op.Sky.Surv.",
+            "flows": {
+                "oss": {
+                    "name": "Op.Sky.Surv.",
+                    "source": "ESS",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "EAS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                },
+                "ossq": {
+                    "name": "Op.Sky.Surv.Quality",
+                    "source": "EAS",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+			"ESS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+			]
+                    }
+		}
+            }
         },
-        { "group": "Surv. Sched. Rqst.",
-          "flows": { "ssr": { "name": "Surv. Sched. Rqst.",
-                              "circulation": "ESS=>SCS,MOC,QLA" } }
+        {
+            "group": "Surv. Sched. Rqst.",
+            "flows": {
+                "ssr": {
+                    "name": "Surv. Sched. Rqst.",
+                    "source": "ESS",
+                    "actions": [
+                        "archive", 
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"},
+                        "distribute"
+                    ],
+                    "target": {
+                        "SCS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ],
+                        "MOC": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ],
+                        "QLA": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                }
+            }
         },
-        { "group": "LE1",
-          "flows": { "sci": { "name": "Sci Data",
-                                "circulation": "MOC=>LE1" },
-                     "edds": { "name": "HKTM",
-                               "circulation": "HMS=>LE1" },
-                     "le1": { "name": "LE1 Products",
-                              "circulation": "LE1=>EAS,QLA" } }
+        {
+            "group": "LE1",
+            "flows": {
+                "sci": {
+                    "name": "Sci Data",
+                    "source": "MOC",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "LE1": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                },
+                "edds": {
+                    "name": "HKTM",
+                    "source": "HMS",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "LE1": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                },
+                "le1": {
+                    "name": "LE1 Products",
+                    "source": "LE1",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "EAS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ],
+                        "QLA": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                }
+            }
         },
-        { "group": "QLA I/O",
-          "flows": { "qla": { "name": "QLA Reports",
-                              "circulation": "QLA=>HMS,EAS" } }
+        {
+            "group": "QLA I/O",
+            "flows": {
+                "qla": {
+                    "name": "QLA Reports",
+                    "source": "QLA",
+                    "actions": [
+                        "archive", 
+                        "distribute",
+                        {"id": "list_file",
+                         "type": "cmd",
+                         "command": "/bin/ls",
+                         "args": "-l {this_dir}/{file_name}"}
+                    ],
+                    "target": {
+                        "HMS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"},
+                            {"id": "remote_copy",
+                             "type": "int",
+                             "command": "remote_copy",
+                             "host": "eucares7.n1data.lan",
+                             "user": "eucares",
+                             "pwd": "5EmRDrtU",
+                             "tgt_dir": "/home/eucares",
+                             "args": ""}
+                        ],
+                        "EAS": [
+                            {"id": "list_file",
+                             "type": "cmd",
+                             "command": "/bin/ls",
+                             "args": "-l {this_dir}/{file_name}"}
+                        ]
+                    }
+                }
+            }
         }
     ]
 }

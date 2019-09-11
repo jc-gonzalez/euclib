@@ -31,11 +31,9 @@ import subprocess
 import shutil
 import traceback
 
-from pprint import pprint
-
 import pytest
 
-from .filetx import Tx
+from tools.filetx import Tx
 
 import logging
 logger = logging.getLogger()
@@ -104,6 +102,11 @@ class ActionsLauncher:
                           'command': 'move',
                           'args': ''}
 
+    ActionInternalCopy = {'id': 'copy',
+                          'type': 'int',
+                          'command': 'move',
+                          'args': ''}
+
     ActionInternalSaveLocalArch = {'id': 'archive',
                                    'type': 'int',
                                    'command': 'archive',
@@ -118,7 +121,16 @@ class ActionsLauncher:
                                 'tgt_dir': '',
                                 'args': ''}
 
-    ActionInternalRemoteMove = ActionInternalRemoteCopy.update({'id': 'remote_move'})
+    ActionInternalRemoteMove = ActionInternalRemoteCopy.update({'id': 'remote_move',
+                                                                'command': 'remote_move'})
+
+    # Intermediate dictionary for internal actions
+    InternalActions = {"archive": ActionInternalSaveLocalArch,
+                       "copy": ActionInternalCopy,
+                       "move": ActionInternalMove,
+                       "distribute": ActionInternalDistribute,
+                       "remote_copy": ActionInternalRemoteCopy,
+                       "remote_move": ActionInternalRemoteMove}
 
     def __init__(self, basePath):
         self.basePath = basePath
@@ -182,6 +194,24 @@ class ActionsLauncher:
         tx = Tx()
         tx.file(from_file).toDir(tgtDir).move()
 
+    def runia_copy(self, from_file, to_folder):
+        """
+        Run Internal Action: Copoy file to another folder
+        :param from_file: The file to copy
+        :param to_folder: The directory where to copy the file
+        :return: -
+        """
+        if isinstance(to_folder, list):
+            fld = to_folder[0]
+        else:
+            fld = to_folder
+        if not fld: return
+        tgtDir = fld if fld[0] == '/' \
+                 else os.path.join(self.basePath, fld)
+        logger.debug('Distribute: {} => {}'.format(from_file, tgtDir))
+        tx = Tx()
+        tx.file(from_file).toDir(tgtDir).copy()
+
     def runia_distribute(self, from_file, to_folders):
         """
         Run Internal Action: Distribute file to multiple folders
@@ -209,7 +239,7 @@ class ActionsLauncher:
         :param is_move: True, to move the file (instead of copy)
         :return: -
         """
-        logger.debug('RemoteCopy: {} =>{}:{}@{}:{} ({})'\
+        logger.debug('RemoteCopy: {} => {}:{}@{}:{} ({})'\
                      .format(from_file, user, pwd, host, folder,
                              ('MOVE' if is_move else 'COPY')))
         tx = Tx()
@@ -239,6 +269,9 @@ class ActionsLauncher:
                 self.runia_archive(from_file=from_file)
             elif action == 'move':
                 self.runia_move(from_file=from_file,
+                                to_folder=act_vars['tgt_dir'])
+            elif action == 'copy':
+                self.runia_copy(from_file=from_file,
                                 to_folder=act_vars['tgt_dir'])
             elif action == 'distribute':
                 self.runia_distribute(from_file=from_file,
@@ -273,8 +306,9 @@ class ActionsLauncher:
         :param tgt_dir: target directory
         :return: -
         """
-        logger.debug('Launching actions in {} on {} ({} =>{})'.format(folder, file,
-                                                                      src_dir, tgt_dir))
+        logger.debug('Launching actions in ' +
+                     '{} on {} : {} => {} )'.format(folder, file,
+                                                    src_dir, tgt_dir))
 
         try:
             actFile = os.path.join(folder, 'actions.json')
@@ -304,6 +338,7 @@ class ActionsLauncher:
             if actType == 'int':
                 logger.debug('Launching internal action "{}" . . .'.format(actCmd))
                 env = { x[2:-2]: y for x,y in rep.items() }
+                env.update(a)
                 self.runInternalAction(action=actCmd, args=args, act_vars=env)
             else:
                 cmd = '{} {}'.format(actCmd, args)

@@ -26,7 +26,7 @@ STRING = str
 #----------------------------------------------------------------------
 
 import shutil
-import asyncssh
+import asyncssh, asyncio
 
 import pytest
 
@@ -52,6 +52,10 @@ __maintainer__ = "J C Gonzalez"
 #__url__       = ""
 
 #----------------------------------------------------------------------
+
+def dumpArgs(args):
+    for k,v in args:
+        print('{} := {}'.format(k,v))
 
 class TxMode(Enum):
     """
@@ -176,6 +180,8 @@ class Tx:
         :param is_move: True, if the transfer is a move
         :return: -
         """
+        pprint(locals())
+
         async with asyncssh.connect(hname, username=uname, password=pwd) as conn:
             await asyncssh.scp(from_file, (conn, to_file + '.part'))
             result = await conn.run('mv {0}.part {0}'.format(to_file), check=True)
@@ -214,9 +220,14 @@ class Tx:
         elif mode == TxMode.REMOTE_COPY or mode == TxMode.REMOTE_MOVE:
 
             new_file = os.path.join(self.to_dir, os.path.basename(self.file_full))
-            self.async_copy(hname=self.hostname, uname=self.uname, pwd=self.passwd,
-                            from_file=self.file_full, to_file=new_file,
-                            is_move=(mode == TxMode.REMOTE_MOVE))
+            loop = asyncio.get_event_loop()
+            try:
+                loop.run_until_complete(self.async_copy(hname=self.hostname,
+                                                        uname=self.uname, pwd=self.passwd,
+                                                        from_file=self.file_full, to_file=new_file,
+                                                        is_move=(mode == TxMode.REMOTE_MOVE)))
+            except (OSError, asyncssh.Error) as exc:
+                logger.error('SSH connection failed: ' + str(exc))
 
         else:
 
