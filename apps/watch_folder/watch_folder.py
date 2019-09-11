@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-sis_controller.py
+watch_folder.py
 
-usage: sis_controller.py [-h] [-c CONFIG_FILE] [-b BASE_PATH] [-d] [-r]
+usage: python3 watch_folder.py [-h] [-c CONFIG_FILE] [-d]
 
-Script to be used as proof of concept for SIS data circulation
+Watches the folder where the script is launched, and executed the actions
+in the actions.json file in the same folder.
 
 optional arguments:
   -h, --help            show this help message and exit
   -c CONFIG_FILE, --config CONFIG_FILE
                         Configuration file to use (default: None)
-  -b BASE_PATH, --base BASE_PATH
-                        Base path, overwrites the path specified in the
-                        config. file (default: None)
   -d, --debug           Activated debug information (default: False)
-  -r, --reuse_folders   Reuse existing folders, avoid overwriting them
-                        (default: False)
+
 """
 #----------------------------------------------------------------------
 
@@ -38,10 +35,12 @@ STRING = str
 
 #----------------------------------------------------------------------
 
-from sis.controller import Controller
+from tools.dirwatcher import define_dir_watcher
+from tools.actions import ActionsLauncher
 
 import time
 import argparse
+import queue
 
 #from pprint import pprint
 
@@ -64,6 +63,13 @@ __maintainer__ = "J C Gonzalez"
 
 #----------------------------------------------------------------------
 
+LoopSleep = 1.0
+
+rawQa = queue.Queue()
+dwThrA = None
+monitQueue = None
+launcher = None
+
 def configureLogs(lvl):
     """
     Function to configure the output of the log system, to be used across the
@@ -75,7 +81,7 @@ def configureLogs(lvl):
 
     # Create handlers
     c_handler = logging.StreamHandler()
-    f_handler = logging.FileHandler('sis.log')
+    f_handler = logging.FileHandler('watchfolder.log')
     c_handler.setLevel(lvl)
     f_handler.setLevel(logging.DEBUG)
 
@@ -90,7 +96,7 @@ def configureLogs(lvl):
     # Add handlers to the logger
     logger.addHandler(c_handler)
     logger.addHandler(f_handler)
-    lmodules = os.environ['LOGGING_MODULES'].split(':')
+    lmodules = os.getenv('LOGGING_MODULES', default='').split(':')
     for lname in reversed(lmodules):
         lgr = logging.getLogger(lname)
         if not lgr.handlers:
@@ -104,16 +110,14 @@ def getArgs():
 
     :return: args structure
     """
-    parser = argparse.ArgumentParser(description='Script to be used as proof of concept for SIS data circulation',
+    parser = argparse.ArgumentParser(description='Watches the folder where the script is ' +
+                                                 'launched, and executed the actions ' +
+                                                 'in the actions.json file in the same folder',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-c', '--config', dest='config_file',
-                        help='Configuration file to use')
-    parser.add_argument('-b', '--base', dest='base_path',
-                        help='Base path, overwrites the path specified in the config. file')
+    parser.add_argument('-D', '--dir', dest='directory', default='.',
+                        help='Directory to monitor')
     parser.add_argument('-d', '--debug', dest='debug', action='store_true',
                         help='Activated debug information')
-    parser.add_argument('-r', '--reuse_folders', dest='reuse_folders', action='store_true',
-                        help='Reuse existing folders, avoid overwriting them')
 
     return parser.parse_args()
 
@@ -123,12 +127,95 @@ def greetings():
     :return: -
     """
     logger.info("==============================================================================")
-    logger.info("SIS-Controller - SIS data circulation controller")
+    logger.info("watch_folder - Watch folder and execute actions on new file")
     logger.info("{}".format(__copyright__))
     logger.info("Last update {}".format(__date__))
     logger.info("Created by {} - {}".format(__author__, __email__))
     logger.info("==============================================================================")
 
+def initialize(folder):
+    """
+
+    :return:
+    """
+    # Launch monitoring
+    global rawQa, dwThrA, monitQueue, launcher
+    rawQa = queue.Queue()
+    dwThrA = define_dir_watcher(folder, rawQa)
+    monitQueue = {'from': folder, 'to': '',
+                  'this_folder_is': 'from',
+                  'queue': rawQa, 'thread': dwThrA}
+    launcher = ActionsLauncher('')
+
+def monitor():
+    """
+    Check all the queues, looking for new entries, and launching the
+    appropriate action (according to the actions object file
+    :return: -
+    """
+    fromFolder = monitQueue['from']
+    toFolder = monitQueue['to']
+    thisFolder = monitQueue[monitQueue['this_folder_is']]
+    q : queue.Queue = monitQueue['queue']
+    while not q.empty():
+        entry = q.get()
+        bentry = os.path.basename(entry)
+        if entry[-5:] == '.part' or \
+            bentry == 'actions.json' or \
+            bentry[0:4] == 'log.' or \
+            bentry[0:4] == 'err.':
+            continue
+        logger.info('New file {}'.format(entry))
+
+        logger.info('Launching...')
+        launcher.launchActions(folder=thisFolder, file=entry,
+                               src_dir=fromFolder, tgt_dir=toFolder)
+        logger.info('done.')
+
+def run(folder):
+    """
+    Launch the Controller process
+    :return: -
+    """
+
+    # Create / List folders
+    initialize(folder)
+
+    # Run main loop
+    runMainLoop()
+
+    # When main loop is finished, wrap up and end program
+    terminate()
+
+def runMainLoop():
+    """
+    Run loop of Master
+    :return: -
+    """
+    logger.info('START')
+    iteration = 0
+
+    try:
+        while True:
+            iteration = iteration + 1
+            logger.debug('Iteration {}'.format(iteration))
+
+            # Perform check of queues
+            monitor()
+
+            time.sleep(LoopSleep)
+
+    except Exception as ee:
+        logger.error('{}'.format(ee))
+        logger.debug('Iteration {}'.format(iteration))
+
+def terminate():
+    """
+    Wrap-up and finish execution
+    :return: -
+    """
+    logger.info('END')
+    dwThrA.join()
 
 def main():
     """
@@ -137,7 +224,7 @@ def main():
 
     # Parse command line arguments
     args = getArgs()
-    recreate_folders = not args.reuse_folders
+    folder = args.directory
 
     # Set up homogeneous logging system
     configureLogs(logging.DEBUG if args.debug else logging.INFO)
@@ -149,11 +236,8 @@ def main():
     logger.info('Start!')
     time_start = time.time()
 
-    # Create and launch controller
-    ctrl = Controller(cfg_file=args.config_file,
-                      create_folders=recreate_folders,
-                      base_path=args.base_path if args.base_path else None)
-    ctrl.run()
+    # Launch process
+    run(folder)
 
     # End time, closing
     time_end = time.time()
