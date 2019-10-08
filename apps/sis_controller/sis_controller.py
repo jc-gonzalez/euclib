@@ -64,7 +64,7 @@ __maintainer__ = "J C Gonzalez"
 
 #----------------------------------------------------------------------
 
-def configureLogs(lvl):
+def configureLogs(lvl, logfile):
     """
     Function to configure the output of the log system, to be used across the
     entire application.
@@ -75,7 +75,7 @@ def configureLogs(lvl):
 
     # Create handlers
     c_handler = logging.StreamHandler()
-    f_handler = logging.FileHandler('sis.log')
+    f_handler = logging.FileHandler(logfile)
     c_handler.setLevel(lvl)
     f_handler.setLevel(logging.DEBUG)
 
@@ -110,10 +110,12 @@ def getArgs():
                         help='Configuration file to use')
     parser.add_argument('-b', '--base', dest='base_path',
                         help='Base path, overwrites the path specified in the config. file')
-    parser.add_argument('-d', '--debug', dest='debug', action='store_true',
-                        help='Activated debug information')
+    parser.add_argument('-l', '--log', dest='logfile', default='sis.log',
+                        help='Directory to monitor')
     parser.add_argument('-r', '--reuse_folders', dest='reuse_folders', action='store_true',
                         help='Reuse existing folders, avoid overwriting them')
+    parser.add_argument('-d', '--debug', dest='debug', action='store_true',
+                        help='Activated debug information')
 
     return parser.parse_args()
 
@@ -140,7 +142,8 @@ def main():
     recreate_folders = not args.reuse_folders
 
     # Set up homogeneous logging system
-    configureLogs(logging.DEBUG if args.debug else logging.INFO)
+    configureLogs(lvl=logging.DEBUG if args.debug else logging.INFO,
+                  logfile=args.logfile)
 
     # Start message
     greetings()
