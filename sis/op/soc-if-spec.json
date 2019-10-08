@@ -29,18 +29,9 @@
                          "args": "-l {this_dir}/{file_name}"}
                     ],
                     "target": {
-                        "ESS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ],
-                        "SCS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "ESS": [],
+                        "SCS": [],
+                        "EAS": []
                     }
                 }
             }
@@ -52,7 +43,7 @@
                     "name": "IOT Data",
                     "source": "IOT",
                     "actions": [
-                        "archive", 
+                        "archive",
                         "distribute",
                         {"id": "list_file",
                          "type": "cmd",
@@ -66,12 +57,7 @@
                              "command": "/bin/ls",
                              "args": "-l {this_dir}/{file_name}"}
                         ],
-                        "EAS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "EAS": []
                     }
                 }
             }
@@ -83,7 +69,7 @@
                     "name": "EC Surv.",
                     "source": "ECSrv",
                     "actions": [
-                        "archive", 
+                        "archive",
                         "distribute",
                         {"id": "list_file",
                          "type": "cmd",
@@ -91,18 +77,8 @@
                          "args": "-l {this_dir}/{file_name}"}
                     ],
                     "target": {
-                        "EAS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ],
-                        "ESS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "EAS": [],
+                        "ESS": []
                     }
                 }
             }
@@ -110,11 +86,11 @@
         {
             "group": "MOC FD / Other",
             "flows": {
-                "data": {
+                "fd": {
                     "name": "MOC FD / Other",
                     "source": "MOC",
                     "actions": [
-                        "archive", 
+                        "archive",
                         "distribute",
                         {"id": "list_file",
                          "type": "cmd",
@@ -122,31 +98,16 @@
                          "args": "-l {this_dir}/{file_name}"}
                     ],
                     "target": {
-                        "ESS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ],
-                        "SCS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ],
-                        "EAS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "ESS": [],
+                        "SCS": [],
+                        "EAS": []
                     }
                 },
                 "edds": {
                     "name": "HKTM",
                     "source": "MOC",
                     "actions": [
-                        "archive", 
+                        "archive",
                         "distribute",
                         {"id": "list_file",
                          "type": "cmd",
@@ -154,32 +115,18 @@
                          "args": "-l {this_dir}/{file_name}"}
                     ],
                     "target": {
-                        "HMS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "HMS": []
                     }
                 },
                 "evt": {
                     "name": "Evts. Def.",
                     "source": "ESS",
                     "actions": [
-                        "archive", 
-                        "distribute",
-                        {"id": "list_file",
-                         "type": "cmd",
-                         "command": "/bin/ls",
-                         "args": "-l {this_dir}/{file_name}"}
+                        "archive",
+                        "distribute"
                     ],
                     "target": {
-                        "SCS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "SCS": []
                     }
                 }
             }
@@ -191,7 +138,7 @@
                     "name": "SGS data",
                     "source": "SGS",
                     "actions": [
-                        "archive", 
+                        "archive",
                         "distribute",
                         {"id": "list_file",
                          "type": "cmd",
@@ -199,12 +146,7 @@
                          "args": "-l {this_dir}/{file_name}"}
                     ],
                     "target": {
-                        "EAS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "EAS": []
                     }
                 }
             }
@@ -216,42 +158,25 @@
                     "name": "Op.Sky.Surv.",
                     "source": "ESS",
                     "actions": [
-                        "archive", 
-                        "distribute",
-                        {"id": "list_file",
-                         "type": "cmd",
-                         "command": "/bin/ls",
-                         "args": "-l {this_dir}/{file_name}"}
+                        "archive",
+                        "distribute"
                     ],
                     "target": {
-                        "EAS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "EAS": [],
+                        "LE1": []
                     }
                 },
                 "ossq": {
                     "name": "Op.Sky.Surv.Quality",
                     "source": "EAS",
                     "actions": [
-                        "archive", 
-                        "distribute",
-                        {"id": "list_file",
-                         "type": "cmd",
-                         "command": "/bin/ls",
-                         "args": "-l {this_dir}/{file_name}"}
+                        "archive",
+                        "distribute"
                     ],
                     "target": {
-			"ESS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-			]
+                         "ESS": []
                     }
-		}
+                }
             }
         },
         {
@@ -261,32 +186,18 @@
                     "name": "Surv. Sched. Rqst.",
                     "source": "ESS",
                     "actions": [
-                        "archive", 
-                        {"id": "list_file",
-                         "type": "cmd",
-                         "command": "/bin/ls",
-                         "args": "-l {this_dir}/{file_name}"},
+                        "archive",
                         "distribute"
                     ],
                     "target": {
-                        "SCS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ],
                         "MOC": [
                             {"id": "list_file",
                              "type": "cmd",
                              "command": "/bin/ls",
                              "args": "-l {this_dir}/{file_name}"}
                         ],
-                        "QLA": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "SCS": [],
+                        "QLA": []
                     }
                 }
             }
@@ -298,7 +209,7 @@
                     "name": "Sci Data",
                     "source": "MOC",
                     "actions": [
-                        "archive", 
+                        "archive",
                         "distribute",
                         {"id": "list_file",
                          "type": "cmd",
@@ -306,58 +217,31 @@
                          "args": "-l {this_dir}/{file_name}"}
                     ],
                     "target": {
-                        "LE1": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "LE1": [],
+                        "EAS": []
                     }
                 },
                 "edds": {
                     "name": "HKTM",
                     "source": "HMS",
                     "actions": [
-                        "archive", 
-                        "distribute",
-                        {"id": "list_file",
-                         "type": "cmd",
-                         "command": "/bin/ls",
-                         "args": "-l {this_dir}/{file_name}"}
+                        "archive",
+                        "distribute"
                     ],
                     "target": {
-                        "LE1": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "LE1": []
                     }
                 },
                 "le1": {
                     "name": "LE1 Products",
                     "source": "LE1",
                     "actions": [
-                        "archive", 
-                        "distribute",
-                        {"id": "list_file",
-                         "type": "cmd",
-                         "command": "/bin/ls",
-                         "args": "-l {this_dir}/{file_name}"}
+                        "archive",
+                        "distribute"
                     ],
                     "target": {
-                        "EAS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ],
-                        "QLA": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "EAS": [],
+                        "QLA": []
                     }
                 }
             }
@@ -369,19 +253,11 @@
                     "name": "QLA Reports",
                     "source": "QLA",
                     "actions": [
-                        "archive", 
-                        "distribute",
-                        {"id": "list_file",
-                         "type": "cmd",
-                         "command": "/bin/ls",
-                         "args": "-l {this_dir}/{file_name}"}
+                        "archive",
+                        "distribute"
                     ],
                     "target": {
                         "HMS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"},
                             {"id": "remote_copy",
                              "type": "int",
                              "command": "remote_copy",
@@ -391,12 +267,7 @@
                              "tgt_dir": "/home/eucares",
                              "args": ""}
                         ],
-                        "EAS": [
-                            {"id": "list_file",
-                             "type": "cmd",
-                             "command": "/bin/ls",
-                             "args": "-l {this_dir}/{file_name}"}
-                        ]
+                        "EAS": []
                     }
                 }
             }

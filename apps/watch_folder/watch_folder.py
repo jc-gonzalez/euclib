@@ -3,15 +3,21 @@
 """
 watch_folder.py
 
-usage: python3 watch_folder.py [-h] [-c CONFIG_FILE] [-d]
+usage: watch_folder.py [-h] [-D DIRECTORY] [-R REMOTE_DIRECTORY] [-l LOGFILE]
+                       [-d]
 
-Watches the folder where the script is launched, and executed the actions
-in the actions.json file in the same folder.
+Watches the folder where the script is launched, and executed the actions in
+the actions.json file in the same folder
 
 optional arguments:
   -h, --help            show this help message and exit
-  -c CONFIG_FILE, --config CONFIG_FILE
-                        Configuration file to use (default: None)
+  -D DIRECTORY, --dir DIRECTORY
+                        Directory to monitor (default: .)
+  -R REMOTE_DIRECTORY, --remote REMOTE_DIRECTORY
+                        Directory to monitor in remote machine, expected
+                        format is USER@HOST:DIR (default: None)
+  -l LOGFILE, --log LOGFILE
+                        Directory to monitor (default: watchfolder.log)
   -d, --debug           Activated debug information (default: False)
 
 """
@@ -41,6 +47,7 @@ from tools.actions import ActionsLauncher
 import time
 import argparse
 import queue
+import subprocess
 
 #from pprint import pprint
 
@@ -70,18 +77,19 @@ dwThrA = None
 monitQueue = None
 launcher = None
 
-def configureLogs(lvl):
+def configureLogs(lvl, logfile):
     """
     Function to configure the output of the log system, to be used across the
     entire application.
     :param lvl: Log level for the console log handler
+    :param logfile: Name of the log file
     :return: -
     """
     logger.setLevel(logging.DEBUG)
 
     # Create handlers
     c_handler = logging.StreamHandler()
-    f_handler = logging.FileHandler('watchfolder.log')
+    f_handler = logging.FileHandler(logfile)
     c_handler.setLevel(lvl)
     f_handler.setLevel(logging.DEBUG)
 
@@ -96,7 +104,7 @@ def configureLogs(lvl):
     # Add handlers to the logger
     logger.addHandler(c_handler)
     logger.addHandler(f_handler)
-    lmodules = os.getenv('LOGGING_MODULES', default='').split(':')
+    lmodules = os.getenv('LOGGING_MODULES', '').split(':')
     for lname in reversed(lmodules):
         lgr = logging.getLogger(lname)
         if not lgr.handlers:
@@ -116,6 +124,10 @@ def getArgs():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-D', '--dir', dest='directory', default='.',
                         help='Directory to monitor')
+    parser.add_argument('-R', '--remote', dest='remote_directory', default=None,
+                        help='Directory to monitor in remote machine, expected format is USER@HOST:DIR')
+    parser.add_argument('-l', '--log', dest='logfile', default='watchfolder.log',
+                        help='Directory to monitor')
     parser.add_argument('-d', '--debug', dest='debug', action='store_true',
                         help='Activated debug information')
 
@@ -133,19 +145,89 @@ def greetings():
     logger.info("Created by {} - {}".format(__author__, __email__))
     logger.info("==============================================================================")
 
-def initialize(folder):
+def initialize(folder, remote=None):
     """
-
+    Initialize directory (andn remote folder) watcher object
     :return:
     """
     # Launch monitoring
     global rawQa, dwThrA, monitQueue, launcher
+    isRemote = remote is not None
+    remoteAddr, remoteFolder = '', ''
+    if isRemote:
+        items = remote.split(':')
+        remoteAddr, remoteFolder = items[0], items[1]
     rawQa = queue.Queue()
     dwThrA = define_dir_watcher(folder, rawQa)
     monitQueue = {'from': folder, 'to': '',
                   'this_folder_is': 'from',
+                  'is_remote': isRemote,
+                  'address': remoteAddr,
+                  'remote_folder': remoteFolder,
+                  'current_items': None,
                   'queue': rawQa, 'thread': dwThrA}
     launcher = ActionsLauncher('')
+
+def getRemoteFolderItems(folder, address):
+    """
+    Get the list of files in a remote folder
+    :param folder: Remote folder to check
+    :param address: Address (user@host) to connect to the remote host
+    :return: List of files
+    """
+    cmd = 'ls -1 {}'.format(folder)
+    ssh = subprocess.Popen(['ssh', address, cmd],
+                           shell=False,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+    result = ssh.stdout.readlines()
+    #if result == []:
+    #    error = ssh.stderr.readlines()
+    #    print('ERROR: %s' % error)
+    return result
+
+def computeDiffs(lst1, lst2):
+    ldiff = []
+    for l in lst2:
+        if l not in lst1:
+            ldiff.append(l.decode('ascii'))
+    return ldiff
+
+def skipControlFiles(entry):
+    """
+    Return true if the file can be skipped
+    :param entry: The file name
+    :return: True/False
+    """
+    bentry = os.path.basename(entry)
+    if entry[-5:] == '.part' or \
+            bentry == 'actions.json' or \
+            bentry[0:4] == 'log.' or \
+            bentry[0:4] == 'err.':
+        return True
+    return False
+
+def synchronizeRemoteAndLocalFolders(mqueue):
+    """
+    Check remote folder, and get new items found into local folder 
+    :param mqueue: Paramters for local and remote folders monitoring
+    :return: -
+    """
+    localDir = mqueue['from']
+    isRemote = mqueue['is_remote']
+    if isRemote:
+        address, remoteDir = mqueue['address'], mqueue['remote_folder']
+        current_items = mqueue['current_items']
+        if current_items is None:
+            current_items = getRemoteFolderItems(remoteDir, address)
+        new_items_list = getRemoteFolderItems(remoteDir, address)
+        new_items = computeDiffs(current_items, new_items_list)
+        for item in new_items:
+            if skipControlFiles(item): continue
+            cmd = 'scp -qC {}:{}/{} {}/'.format(address, remoteDir, item, localDir)
+            subprocess.call(cmd.split())
+
+        mqueue['current_items'] = new_items_list
 
 def monitor():
     """
@@ -153,33 +235,32 @@ def monitor():
     appropriate action (according to the actions object file
     :return: -
     """
+    # Get remote new entries into local folder
+    global monitQueue
+    synchronizeRemoteAndLocalFolders(monitQueue)
+
+    # Evaluate new events
     fromFolder = monitQueue['from']
     toFolder = monitQueue['to']
     thisFolder = monitQueue[monitQueue['this_folder_is']]
     q : queue.Queue = monitQueue['queue']
     while not q.empty():
         entry = q.get()
-        bentry = os.path.basename(entry)
-        if entry[-5:] == '.part' or \
-            bentry == 'actions.json' or \
-            bentry[0:4] == 'log.' or \
-            bentry[0:4] == 'err.':
-            continue
+        if skipControlFiles(entry): continue
         logger.info('New file {}'.format(entry))
-
         logger.info('Launching...')
         launcher.launchActions(folder=thisFolder, file=entry,
                                src_dir=fromFolder, tgt_dir=toFolder)
         logger.info('done.')
 
-def run(folder):
+def run(folder, remote=None):
     """
     Launch the Controller process
     :return: -
     """
 
     # Create / List folders
-    initialize(folder)
+    initialize(folder, remote)
 
     # Run main loop
     runMainLoop()
@@ -225,9 +306,11 @@ def main():
     # Parse command line arguments
     args = getArgs()
     folder = args.directory
+    remote = args.remote_directory
 
     # Set up homogeneous logging system
-    configureLogs(logging.DEBUG if args.debug else logging.INFO)
+    configureLogs(lvl=logging.DEBUG if args.debug else logging.INFO,
+                  logfile=args.logfile)
 
     # Start message
     greetings()
@@ -237,7 +320,7 @@ def main():
     time_start = time.time()
 
     # Launch process
-    run(folder)
+    run(folder, remote)
 
     # End time, closing
     time_end = time.time()

@@ -114,6 +114,7 @@ def getArgs():
                                                  'and shows the log messages',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-e', '--element', dest='element', default='MOC',
+<<<<<<< HEAD
                         help='Element Acronym')
     parser.add_argument('-f', '--files_dir', dest='data_dir', default='./data',
                         help='Directory where the data files to be sent are located')
@@ -126,6 +127,15 @@ def getArgs():
                         help='Log info file name')
     parser.add_argument('-d', '--debug', dest='debug', action='store_true',
                         help='Activate debug information')
+=======
+                        help='Directory where the element simulator is deployed')
+    parser.add_argument('-D', '--dir', dest='directory', default='.',
+                        help='Directory where the element simulator is deployed')
+    parser.add_argument('-l', '--log', dest='logfile', default='simelem.log',
+                        help='Directory to monitor')
+    parser.add_argument('-d', '--debug', dest='debug', action='store_true',
+                        help='Activated debug information')
+>>>>>>> e3046e850723a98350d75a1cb74de86e1b407462
 
     return parser.parse_args()
 
@@ -151,7 +161,11 @@ def main():
                   args.logfile)
 
     root = Tk()
+<<<<<<< HEAD
     app = App(parent=root, args=args, logger=logger)
+=======
+    app = App(parent=root, args=args)
+>>>>>>> e3046e850723a98350d75a1cb74de86e1b407462
     root.mainloop()
     return
 
