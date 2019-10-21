@@ -240,9 +240,17 @@ class App:
             self.dataFilesList.set(self.dataFiles)
             
     def recv(self):
-        currList = glob.glob(self.recvFolder + '/*')
+        currList = []
+        for fld in self.recvFolder.split(','):
+            currList.extend(glob.glob(fld + '/*'))
+
         newList = []
         for item in currList:
+            bname = os.path.basename(item)
+            if bname == 'actions.json' or bname[-3:] == '.sh' or \
+               bname[0:4] == 'log.' or bname[-4:] == '.log' or \
+               bname[0:5] == 'part.' or bname[-5:] == '.part':
+                continue
             filename = os.path.basename(item)
             if filename not in self.recvFiles:
                 newList.append(item)
