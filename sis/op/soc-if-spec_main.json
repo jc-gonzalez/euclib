@@ -23,6 +23,24 @@
             "tgt_dir": "$EASIN",
             "args": ""
         },
+        "rcp_ess": {
+            "type": "int",
+            "command": "remote_copy",
+            "host": "$ESSHOST",
+            "user": "$ESSUSER",
+            "pwd": "$ESSPWD",
+            "tgt_dir": "$ESSIN",
+            "args": ""
+        },
+        "rcp_hms": {
+            "type": "int",
+            "command": "remote_copy",
+            "host": "$HMSHOST",
+            "user": "$HMSUSER",
+            "pwd": "$HMSPWD",
+            "tgt_dir": "$HMSIN",
+            "args": ""
+        },
         "rcp_le1": {
             "type": "int",
             "command": "remote_copy",
@@ -49,6 +67,15 @@
             "pwd": "$MOCPWD",
             "tgt_dir": "$MOCIN",
             "args": ""
+        },
+        "rcp_scs": {
+            "type": "int",
+            "command": "remote_copy",
+            "host": "$SCSHOST",
+            "user": "$SCSUSER",
+            "pwd": "$SCSPWD",
+            "tgt_dir": "$SCSIN",
+            "args": ""
         }
     },
     "data_flows": [
@@ -60,8 +87,8 @@
                     "source": "IOT",
                     "actions": [ "archive", "distribute" ],
                     "target": {
-                        "ESS": [],
-                        "SCS": [],
+                        "ESS": [ "rcp_ess" ],
+                        "SCS": [ "rcp_scs" ],
                         "EAS": [ "rcp_eas" ]
                     }
                 }
@@ -90,7 +117,7 @@
                     "actions": [ "archive", "distribute" ],
                     "target": {
                         "EAS": [ "rcp_eas" ],
-                        "ESS": []
+                        "ESS": [ "rcp_ess" ]
                     }
                 }
             }
@@ -103,8 +130,8 @@
                     "source": "MOC",
                     "actions": [ "archive", "distribute" ],
                     "target": {
-                        "ESS": [],
-                        "SCS": [],
+                        "ESS": [ "rcp_ess" ],
+                        "SCS": [ "rcp_scs" ],
                         "EAS": [ "rcp_eas" ]
                     }
                 },
@@ -113,7 +140,7 @@
                     "source": "MOC",
                     "actions": [ "archive", "distribute" ],
                     "target": {
-                        "HMS": []
+                        "HMS": [ "rcp_hms" ]
                     }
                 },
                 "evt": {
@@ -121,7 +148,7 @@
                     "source": "ESS",
                     "actions": [ "archive", "distribute" ],
                     "target": {
-                        "SCS": []
+                        "SCS": [ "rcp_scs" ]
                     }
                 }
             }
@@ -156,7 +183,7 @@
                     "source": "EAS",
                     "actions": [ "archive", "distribute" ],
                     "target": {
-                         "ESS": []
+                         "ESS": [ "rcp_ess" ]
                     }
                 }
             }
@@ -170,7 +197,7 @@
                     "actions": [ "archive", "distribute" ],
                     "target": {
                         "MOC": [ "rcp_moc" ],
-                        "SCS": [],
+                        "SCS": [ "rcp_scs" ],
                         "QLA": [ "rcp_qla" ]
                     }
                 }
@@ -215,7 +242,7 @@
                     "source": "QLA",
                     "actions": [ "archive", "distribute" ],
                     "target": {
-                        "HMS": [],
+                        "HMS": [ "rcp_hms" ],
                         "EAS": [ "rcp_eas" ]
                     }
                 }
