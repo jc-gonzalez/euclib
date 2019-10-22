@@ -10,6 +10,13 @@ SCRIPTPATH=$(dirname $(stat -f $0))
 export PYARES_INI_FILE=/home/ares/.config/aresri/retrieval_config.ini
 export PYTHONPATH=${SCRIPTPATH}
 
+if [ $# -lt 1 ]; then
+    echo "usage: "
+    echo "        $0 gui "
+    echo "        $0 retrieve <options>"
+    exit 0
+fi
+
 case $1 in
     gui)
         python3 ${SCRIPTPATH}/apps/ares_retrimp/ares_retrimp_gui.py
