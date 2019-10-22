@@ -102,3 +102,16 @@ def ydoy_to_ymd(Y,N):
         M = 1
     D = N - int((275 * M) / 9.0) + K * int((M + 9) / 12.0) + 30
     return Y, M, D
+
+def now_utc_iso(fraction_digits=3):
+    """
+    Generates the UTC date string in ISO format, with a number of digits for sub-seconds
+    :param fraction_digits: Number of digits after the dot
+    :return: The date in UTC, in ISO format
+    """
+    now = datetime.utcnow()
+    usecstr = '{:06d}'.format(now.microsecond)
+    nowstr = now.replace(microsecond=0).isoformat()
+    if fraction_digits > 0:
+        nowstr = nowstr + '.' + usecstr[:fraction_digits]
+    return nowstr + 'Z'
