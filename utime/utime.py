@@ -109,7 +109,7 @@ def now_utc_iso(fraction_digits=3):
     :param fraction_digits: Number of digits after the dot
     :return: The date in UTC, in ISO format
     """
-    now = datetime.utcnow()
+    now = datetime.datetime.utcnow()
     usecstr = '{:06d}'.format(now.microsecond)
     nowstr = now.replace(microsecond=0).isoformat()
     if fraction_digits > 0:
