@@ -79,33 +79,6 @@ Ares2FitsConversion = {
 StringType = 12
 DateTimeType = 13
 
-
-def get_args():
-    '''
-    Parse arguments from command line
-
-    :return: args structure
-    '''
-    parser = argparse.ArgumentParser(description='Test script to retrieve data from ARES system',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-c', '--config', dest='config_file', default=DefaultConfig,
-                        help='Configuration file to use (default:{})'.format(DefaultConfig))
-    parser.add_argument('-f', '--from_pid', dest='from_pid', type=int, default=1,
-                        help='Initial parameter identifier')
-    parser.add_argument('-t', '--to_pid', dest='to_pid', type=int, default=100,
-                        help='Final parameter identifier')
-    parser.add_argument('-F', '--from_date', dest='from_date', type=int, nargs=5,
-                        help='Initial date in the format Y DOY h m s')
-    parser.add_argument('-T', '--to_date', dest='to_date', type=int, nargs=5,
-                        help='Final date in the format Y DOY h m s')
-    parser.add_argument('-n', '--num_pids_per_file', dest='num_pids_per_file', type=int,
-                        default=1000000, help='Maximum number of PIDs per file')
-    parser.add_argument('-e', '--sys_elem', dest='sys_elem', default='TM',
-                        help='Set System Element (default:TM)')
-
-    return parser.parse_args()
-
-
 def silent_remove(filename):
     '''
     Silently remove file if it does exist
@@ -566,7 +539,7 @@ class Retriever(object):
         '''
         # Build initial primary HDU for FITS file
         hdr = fits.Header()
-        hdr['OBSERVER'] = 'J C Gonzalez'
+        hdr['OBSERVER'] = 'Euclid Operator'
         hdr['COMMENT'] = 'Multitable FITS file, with data retrieved fro ARES system'
         hdr['COMMENT'] = 'File contains data for PIDs in range {}:{}'.format(i, j)
         primary_hdu = fits.PrimaryHDU(header=hdr)
