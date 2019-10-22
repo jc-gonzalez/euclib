@@ -6,7 +6,7 @@
 # Created by J C Gonzalez <jcgonzalez@sciops.esa.int>
 # Copyright (C) 2019 by Euclid SOC Team
 #------------------------------------------------------------------------------------
-SCRIPTPATH=$(dirname $(stat -f $0))
+SCRIPTPATH=$(cd $(dirname $0); pwd; cd - > /dev/null)
 export PYARES_INI_FILE=/home/ares/.config/aresri/retrieval_config.ini
 export PYTHONPATH=${SCRIPTPATH}
 
