@@ -108,9 +108,9 @@ def main():
     rqstm = 'pid'
 
     # File name template
-    filename_tpl = 'ares_%F-%T_%f-%t_%YMD1T%hms1-%YMD2T%hms2'
+    filename_tpl = 'EUC_SOC_HKTM_%F-%T_%f-%t_%YMD1T%hms1-%YMD2T%hms2'
     if rqstm == 'name':
-        filename_tpl = 'ares_%F_%N_%YMD1T%hms1-%YMD2T%hms2'
+        filename_tpl = 'EUC_SOC_HKTM_%F_%N_%YMD1T%hms1-%YMD2T%hms2'
 
     retriever = Retriever(cfg_file=args.config_file, rqst_mode='pid',
                           from_pid=args.from_pid, to_pid=args.to_pid,
