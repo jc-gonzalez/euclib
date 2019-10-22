@@ -140,7 +140,8 @@ XMLTemplates = {
   </Data>
 </dpd-le1-hktm:HKTMProduct>
 """,
-    'DateTimeRange': '      <FromYDoY>{}.{} {}:{}:{}.000Z</FromYDoY>\n      <ToDoY>{}.{} {}:{}:{}.000Z</ToDoY>',
+    'DateTimeRange': '      <FromYDoY>{:04d}.{:03d} {:02d}:{:02d}:{:06.3f}Z</FromYDoY>\n' +
+                     '      <ToYDoY>{:04d}.{:03d} {:02d}:{:02d}:{:06.3f}Z</ToYDoY>',
     'PIDRange': '      <FromPID>{}</FromPID>\n      <ToPID>{}</ToPID>',
     'Param': '      <Parameter pid="{}" name="{}" type="{}"/>',
     'Prod': '      <Product baseName="{}" fromPID="{}" toPID="{}">\n{}\n      </Product>',
@@ -426,7 +427,7 @@ class Retriever(object):
         # Generate complete XML index file
         xml_file_tpl = self.create_actual_file_tpl('EUC_SOC_HKTM_%YMD1T%hms1-%YMD2T%hms2')
         base_name = self.generate_filename(xml_file_tpl)
-        xml = XMLTemplates['XML'].format(base_name, 'NOW',
+        xml = XMLTemplates['XML'].format(base_name, now_utc_iso(),
                                          self.xmlDateTimeRange, self.xmlPIDRange,
                                          '\n'.join(self.xmlParams),
                                          '\n'.join(self.xmlProds))
