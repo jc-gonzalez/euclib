@@ -37,6 +37,10 @@ __email__ = "jcgonzalez@sciops.esa.int"
 __status__ = "Development"
 #__url__ = ""
 
+# Default configuration
+DefaultConfig = os.path.join(os.getenv('PYTHONPATH',
+                                       '../../cfg').split(':'),
+                             'retrieval_config.ini')
 
 def configureLogs():
     logger.setLevel(logging.DEBUG)
