@@ -185,7 +185,7 @@ class ParameterSampleProvider:
         data = self.__dblayer.get_params_sysel_from_pids(from_pid, to_pid, self.system_element)
         param_names = [item['NAME'] for item in data]
         param_syselem = [item['SYSTEM_ELEMENT'] for item in data]
-        print(list(zip(param_names, param_syselem)))
+        #print(list(zip(param_names, param_syselem)))
         return (param_names, param_syselem)
 
     def get_parameter_pid_sysel_from_names(self, names):
