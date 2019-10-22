@@ -213,9 +213,21 @@ class Controller:
         logger.info('SIS Controller Base Path: {}'.format(self.baseDir))
         logger.info('Ensuring the SIS folders exist under base path')
 
+        # Get identifiers
         identifiers = dict(cfg['id'])
-
         ids = (identifiers if create_folders else {})
+
+        # Get predefined actions and substitute env. vars.
+        predefined_actions = dict(cfg['predefined_actions'])
+        for id,act in predefined_actions.items():
+            act['id'] = id
+            for k,v in act.items():
+                if len(v) < 1:
+                    continue
+                if v[0] == '$':
+                    act[k] = os.getenv(v[1:], 'UNKNOWN')
+        ActionsLauncher.InternalActions.update(predefined_actions)
+        pprint(ActionsLauncher.InternalActions)
 
         # Create main folders, and read-me files
         for elem, acronym in ids.items():
