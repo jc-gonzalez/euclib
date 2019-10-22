@@ -1,19 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-watch_folder.py
+simelem.py
 
-usage: python3 watch_folder.py [-h] [-c CONFIG_FILE] [-d]
+usage: simelem.py [-h] [-e ELEMENT] [-f DATA_DIR] [-o OUTGOING_DIRS]
+                  [-i INCOMING_DIR] [-l LOGFILE] [-d]
 
-Watches the folder where the script is launched, and executed the actions
-in the actions.json file in the same folder.
+Simulates the I/O operations of an element, and shows the log messages
 
 optional arguments:
   -h, --help            show this help message and exit
-  -c CONFIG_FILE, --config CONFIG_FILE
-                        Configuration file to use (default: None)
-  -d, --debug           Activated debug information (default: False)
-
+  -e ELEMENT, --element ELEMENT
+                        Element Acronym (default: MOC)
+  -f DATA_DIR, --files_dir DATA_DIR
+                        Directory where the data files to be sent are located
+                        (default: ./data)
+  -o OUTGOING_DIRS, --outgoing OUTGOING_DIRS
+                        Comma separated of pairs ELEM:DIR, that indicates the
+                        folder DIRwhere data must be stored to be sent to
+                        element ELEM (default: SIS:./out)
+  -i INCOMING_DIR, --incoming INCOMING_DIR
+                        Comma separated list of directories where remote files
+                        are received (default: ./in)
+  -l LOGFILE, --log LOGFILE
+                        Log info file name (default: simelem.log)
+  -d, --debug           Activate debug information (default: False)
 """
 #----------------------------------------------------------------------
 
@@ -119,9 +130,9 @@ def getArgs():
                         help='Directory where the data files to be sent are located')
     parser.add_argument('-o', '--outgoing', dest='outgoing_dirs', default='SIS:./out',
                         help='Comma separated of pairs ELEM:DIR, that indicates the folder DIR' +
-			'where data must be stored to be sent to element ELEM')
+			            'where data must be stored to be sent to element ELEM')
     parser.add_argument('-i', '--incoming', dest='incoming_dir', default='./in',
-                        help='Directory where remote files are received')
+                        help='Comma separated list of directories where remote files are received')
     parser.add_argument('-l', '--log', dest='logfile', default='simelem.log',
                         help='Log info file name')
     parser.add_argument('-d', '--debug', dest='debug', action='store_true',
