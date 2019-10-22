@@ -79,6 +79,74 @@ Ares2FitsConversion = {
 StringType = 12
 DateTimeType = 13
 
+XMLTemplates = {
+    'XML': """
+<dpd-le1-hktm:HKTMProduct
+    xmlns:pro-le1-vis="http://euclid.esa.org/schema/pro/le1/vis"
+    xmlns:bas-imp-stc="http://euclid.esa.org/schema/bas/imp/stc"
+    xmlns:sys="http://euclid.esa.org/schema/sys"
+    xmlns:bas-utd="http://euclid.esa.org/schema/bas/utd"
+    xmlns:bas-imp="http://euclid.esa.org/schema/bas/imp"
+    xmlns:pro-le1="http://euclid.esa.org/schema/pro/le1"
+    xmlns:bas-imp-fits="http://euclid.esa.org/schema/bas/imp/fits"
+    xmlns:dpd-le1-visrawframe="http://euclid.esa.org/schema/dpd/le1/visrawframe"
+    xmlns:ins="http://euclid.esa.org/schema/ins"
+    xmlns:bas-imp-eso="http://euclid.esa.org/schema/bas/imp/eso"
+    xmlns:bas-img="http://euclid.esa.org/schema/bas/img"
+    xmlns:bas-ppr="http://euclid.esa.org/schema/bas/ppr"
+    xmlns:bas-dtd="http://euclid.esa.org/schema/bas/dtd"
+    xmlns:bas-cot="http://euclid.esa.org/schema/bas/cot"
+    xmlns:sys-dss="http://euclid.esa.org/schema/sys/dss"
+    xmlns:bas-dqc="http://euclid.esa.org/schema/bas/dqc"
+    xmlns:bas-fit="http://euclid.esa.org/schema/bas/fit"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <Header>
+    <ProductId>{}</ProductId>
+    <ProductType>HKTM</ProductType>
+    <SoftwareName>HKTMProductGenerator</SoftwareName>
+    <SoftwareRelease>2.2</SoftwareRelease>
+    <ManualValidationStatus>UNKNOWN</ManualValidationStatus>
+    <PipelineRun></PipelineRun>
+    <ExitStatusCode>0</ExitStatusCode>
+    <DataModelVersion>N</DataModelVersion>
+    <MinDataModelVersion>M</MinDataModelVersion>
+    <ScientificCustodian>SOC</ScientificCustodian>
+    <AccessRights>
+      <EuclidConsortiumRead>True</EuclidConsortiumRead>
+      <EuclidConsortiumWrite>False</EuclidConsortiumWrite>
+      <ScientificGroupRead>False</ScientificGroupRead>
+      <ScientificGroupWrite>False</ScientificGroupWrite>
+    </AccessRights>
+    <Curator>
+      <Name>J.C.Gonzalez</Name>
+      <Email>JCGonzalez@sciops.esa.int</Email>
+    </Curator>
+    <Creator>SOC</Creator>
+    <CreationDate>{}</CreationDate>
+  </Header>
+  <Data>
+    <DateTimeRange>
+{}
+    </DateTimeRange>
+    <ParameterRange>
+{}
+    </ParameterRange>
+    <ParameterList>
+{}
+    </ParameterList>
+    <ProductList>
+{}
+    </ProductList>
+  </Data>
+</dpd-le1-hktm:HKTMProduct>
+""",
+    'DateTimeRange': '      <FromYDoY>{}.{} {}:{}:{}.000Z</FromYDoY>\n      <ToDoY>{}.{} {}:{}:{}.000Z</ToDoY>',
+    'PIDRange': '      <FromPID>{}</FromPID>\n      <ToPID>{}</ToPID>',
+    'Param': '      <Parameter pid="{}" name="{}" type="{}"/>',
+    'Prod': '      <Product baseName="{}" fromPID="{}" toPID="{}">\n{}\n      </Product>',
+    'HDU': '        <HDU index="{}" pid="{}" paramName="{}" type="{}"/>'
+}
+
 def silent_remove(filename):
     '''
     Silently remove file if it does exist
@@ -187,6 +255,16 @@ class Retriever(object):
         self.file_tpl = self.create_actual_file_tpl(file_tpl)
         #print(self.generate_filename(self.file_tpl))
         self.file_type = file_type
+
+        self.xmlDateTimeRange = XMLTemplates['DateTimeRange'].format(self.year1, self.doy1,
+                                                                     self.hour1, self.min1, self.sec1,
+                                                                     self.year2, self.doy2,
+                                                                     self.hour2, self.min2, self.sec2)
+        self.xmlPIDRange = XMLTemplates['PIDRange'].format(self.from_pid, self.to_pid)
+
+        self.xmlHDUs = []
+        self.xmlParams = []
+        self.xmlProds = []
 
         logger.info('-'*60)
         logger.info("Retrieving samples for parameters with parameter ids in the range {0}:{1}"
@@ -307,12 +385,21 @@ class Retriever(object):
                                                                format=type_conv)])
                 hdul.append(t)
 
+                # Generate XML index section
+                self.xmlHDUs.append(XMLTemplates['HDU'].format(i-1, pid-1, var_name, type_conv))
+                self.xmlParams.append(XMLTemplates['Param'].format(pid-1, var_name, type_conv))
+
             # Remove FITS file if exists, and (re)create it
             self.from_pid_blk, self.to_pid_blk = (i_pid, j_pid)
-            file_name = '{}/{}.fits'.format(self.outdir, self.generate_filename(self.file_tpl))
+            base_name = self.generate_filename(self.file_tpl)
+            file_name = os.path.join(self.outdir, base_name) + '.fits'
             self.save_to_fits(hdul, file_name)
             gen_files.append(file_name)
             logger.info('Saved file {}'.format(file_name))
+
+            self.xmlProds.append(XMLTemplates['Prod'].format(base_name,
+                                                             self.from_pid_blk, self.to_pid_blk,
+                                                             '\n'.join(self.xmlHDUs)))
 
             end_time = time.time()
 
@@ -335,6 +422,16 @@ class Retriever(object):
             logger.info("The following parameters could not be converted:")
             for p in param_names_invalid.keys():
                 logger.info('{}: "{}"'.format(p, param_names_invalid[p]))
+
+        # Generate complete XML index file
+        base_name = self.generate_filename('ares_%F-%T_%YMD1T%hms1-%YMD2T%hms2') + '.xml'
+        xml = XMLTemplates['XML'].format(base_name, 'NOW',
+                                         self.xmlDateTimeRange, self.xmlPIDRange,
+                                         '\n'.join(self.xmlParams),
+                                         '\n'.join(self.xmlProds))
+        xml_file = os.path.join(self.outdir, base_name)
+        with open(xml_file, "w") as fxml:
+            fxml.write(xml)
 
         return (retr_time_total, conv_time_total, full_time_total, param_names_invalid, gen_files)
 
@@ -432,11 +529,20 @@ class Retriever(object):
             self.from_pid, self.to_pid = (pid, pid)
             self.from_pid_blk, self.to_pid_blk = (pid, pid)
             self.name = pname
-            file_name = '{}/{}.fits'.format(self.outdir, self.generate_filename(self.file_tpl))
+            base_name = self.generate_filename(self.file_tpl)
+            file_name = os.path.join(self.outdir, base_name) + '.fits'
             self.save_to_fits(hdul, file_name)
             gen_files.append(file_name)
             logger.info('Saved file {}'.format(file_name))
 
+            # Generate XML index section
+            self.xmlParams.append(XMLTemplates['Param'].format(pid, var_name, type_conv))
+            self.xmlHDUs.append(XMLTemplates['HDU'].format(i, pid, var_name, type_conv))
+            self.xmlProds.append(XMLTemplates['Prod'].format(base_name,
+                                                             self.from_pid_blk, self.to_pid_blk,
+                                                             '\n'.join(self.xmlHDUs)))
+
+            # Go on
             i = i + 1
 
             end_time = time.time()
@@ -453,6 +559,16 @@ class Retriever(object):
             logger.info("The following parameters could not be converted:")
             for p in param_names_invalid.keys():
                 logger.info('{}: "{}"'.format(p, param_names_invalid[p]))
+
+        # Generate complete XML index file
+        base_name = self.generate_filename('ares_%F-%T_%YMD1T%hms1-%YMD2T%hms2') + '.xml'
+        xml = XMLTemplates['XML'].format(base_name, 'NOW',
+                                         self.xmlDateTimeRange, self.xmlPIDRange,
+                                         '\n'.join(self.xmlParams),
+                                         '\n'.join(self.xmlProds))
+        xml_file = os.path.join(self.outdir, base_name)
+        with open(xml_file, "w") as fxml:
+            fxml.write(xml)
 
         return (retr_time_total, conv_time_total, full_time_total, param_names_invalid, gen_files)
 
@@ -552,13 +668,8 @@ class Retriever(object):
         silent_remove(file_name)
         hdu_list.writeto(file_name)
 
-
 def main():
-    retriever = Retriever(cfg_file='./retrieval_config.ini', rqst_mode='pid',
-                          from_pid=1, to_pid=10000, pids_block=10000,
-                          from_date=(2018,134,12,34,56,0), to_date=(2018,135,12,34,56,0),
-                          output_dir='./')
-
+    pass
 
 if __name__ == '__main__':
     main()
