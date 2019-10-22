@@ -39,7 +39,7 @@ __status__ = "Development"
 
 # Default configuration
 DefaultConfig = os.path.join(os.getenv('PYTHONPATH',
-                                       '../../cfg').split(':'),
+                                       '../../cfg').split(':')[0],
                              'retrieval_config.ini')
 
 def configureLogs():
@@ -120,10 +120,6 @@ def main():
                           sys_elem=args.sys_elem)
     retr_time_total, conv_time_total, full_time_total, param_names_invalid, gen_files = retriever.run()
 
-    logger.info('Total retrieval time:  {:8d} s'.format(retr_time_total))
-    logger.info('Total conversion time: {:8d} s'.format(conv_time_total))
-    logger.info('Total processing time: {:8d} s'.format(full_time_total))
-    logger.info('Invalid parameters: {}'.format(','.join(param_names_invalid)))
     logger.info('Generated files:')
     for file in gen_files:
         logger.info(' - {}'.format(file))
