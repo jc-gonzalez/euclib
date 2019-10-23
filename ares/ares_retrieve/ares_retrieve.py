@@ -134,9 +134,14 @@ XMLTemplates = {
     <ParameterList>
 {}
     </ParameterList>
-    <ProductList>
+    <HKTMFileList>
 {}
-    </ProductList>
+    </HKTMFileList>
+    <HKTMProduct>
+        <DataContainer filestatus="PROPOSED">
+{}
+        </DataContainer>
+    </HKTMProduct>
   </Data>
 </dpd-le1-hktm:HKTMProduct>
 """,
@@ -144,8 +149,9 @@ XMLTemplates = {
                      '      <ToYDoY>{:04d}.{:03d} {:02d}:{:02d}:{:06.3f}Z</ToYDoY>',
     'PIDRange': '      <FromPID>{}</FromPID>\n      <ToPID>{}</ToPID>',
     'Param': '      <Parameter pid="{}" name="{}" type="{}" prodIndex="{}" hduIndex="{}"/>',
-    'Prod': '      <Product index="{}" baseName="{}" fromPID="{}" toPID="{}">\n{}\n      </Product>',
-    'HDU': '        <HDU index="{}" pid="{}" paramName="{}" type="{}"/>'
+    'Prod': '      <Product index="{}" id="{}" fromPID="{}" toPID="{}">\n{}\n      </Product>',
+    'HDU': '        <HDU index="{}" pid="{}" paramName="{}" type="{}"/>',
+    'DataCont': '      <FileName>{}</FileName>',
 }
 
 def silent_remove(filename):
@@ -266,6 +272,7 @@ class Retriever(object):
         self.xmlHDUs = []
         self.xmlParams = []
         self.xmlProds = []
+        self.xmlCont = []
 
         logger.info('-'*60)
         logger.info("Retrieving samples for parameters with parameter ids in the range {0}:{1}"
@@ -404,6 +411,7 @@ class Retriever(object):
             self.xmlProds.append(XMLTemplates['Prod'].format(nfile, base_name,
                                                              self.from_pid_blk, self.to_pid_blk,
                                                              '\n'.join(self.xmlHDUs)))
+            self.xmlCont.append(XMLTemplates['DataCont'].format(base_name + '.fits'))
             self.xmlHDUs = []
 
             nfile = nfile + 1
@@ -435,7 +443,8 @@ class Retriever(object):
         xml = XMLTemplates['XML'].format(base_name, now_utc_iso(),
                                          self.xmlDateTimeRange, self.xmlPIDRange,
                                          '\n'.join(self.xmlParams),
-                                         '\n'.join(self.xmlProds))
+                                         '\n'.join(self.xmlProds),
+                                         '\n'.join(self.xmlCont))
         xml_file = os.path.join(self.outdir, base_name) + '.xml'
         with open(xml_file, "w") as fxml:
             fxml.write(xml)
@@ -548,6 +557,7 @@ class Retriever(object):
             self.xmlProds.append(XMLTemplates['Prod'].format(i + 1, base_name,
                                                              self.from_pid_blk, self.to_pid_blk,
                                                              '\n'.join(self.xmlHDUs)))
+            self.xmlCont.append(XMLTemplates['DataCont'].format(base_name + '.fits'))
             self.xmlHDUs = []
 
             # Go on
@@ -574,7 +584,8 @@ class Retriever(object):
         xml = XMLTemplates['XML'].format(base_name, 'NOW',
                                          self.xmlDateTimeRange, self.xmlPIDRange,
                                          '\n'.join(self.xmlParams),
-                                         '\n'.join(self.xmlProds))
+                                         '\n'.join(self.xmlProds),
+                                         '\n'.join(self.xmlCont))
         xml_file = os.path.join(self.outdir, base_name) + '.xml'
         with open(xml_file, "w") as fxml:
             fxml.write(xml)
