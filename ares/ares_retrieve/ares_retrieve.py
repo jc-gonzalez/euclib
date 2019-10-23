@@ -138,9 +138,9 @@ XMLTemplates = {
 {}
     </HKTMFileList>
     <HKTMProduct>
-        <DataContainer filestatus="PROPOSED">
+      <DataContainer filestatus="PROPOSED">
 {}
-        </DataContainer>
+      </DataContainer>
     </HKTMProduct>
   </Data>
 </dpd-le1-hktm:HKTMProduct>
@@ -151,7 +151,7 @@ XMLTemplates = {
     'Param': '      <Parameter pid="{}" name="{}" type="{}" prodIndex="{}" hduIndex="{}"/>',
     'Prod': '      <Product index="{}" id="{}" fromPID="{}" toPID="{}">\n{}\n      </Product>',
     'HDU': '        <HDU index="{}" pid="{}" paramName="{}" type="{}"/>',
-    'DataCont': '      <FileName>{}</FileName>',
+    'DataCont': '        <FileName>{}</FileName>',
 }
 
 def silent_remove(filename):
