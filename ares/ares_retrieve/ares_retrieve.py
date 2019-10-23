@@ -143,8 +143,8 @@ XMLTemplates = {
     'DateTimeRange': '      <FromYDoY>{:04d}.{:03d} {:02d}:{:02d}:{:06.3f}Z</FromYDoY>\n' +
                      '      <ToYDoY>{:04d}.{:03d} {:02d}:{:02d}:{:06.3f}Z</ToYDoY>',
     'PIDRange': '      <FromPID>{}</FromPID>\n      <ToPID>{}</ToPID>',
-    'Param': '      <Parameter pid="{}" name="{}" type="{}"/>',
-    'Prod': '      <Product baseName="{}" fromPID="{}" toPID="{}">\n{}\n      </Product>',
+    'Param': '      <Parameter pid="{}" name="{}" type="{}" prodIndex="{}" hduIndex="{}"/>',
+    'Prod': '      <Product index="{}" baseName="{}" fromPID="{}" toPID="{}">\n{}\n      </Product>',
     'HDU': '        <HDU index="{}" pid="{}" paramName="{}" type="{}"/>'
 }
 
@@ -314,6 +314,8 @@ class Retriever(object):
         var_name = ''
         var_type = ''
 
+        nfile = 1
+
         while keep_retrieving:
 
             # Set preparation time stamp
@@ -387,8 +389,9 @@ class Retriever(object):
                 hdul.append(t)
 
                 # Generate XML index section
-                self.xmlHDUs.append(XMLTemplates['HDU'].format(i-1, pid-1, var_name, type_conv))
-                self.xmlParams.append(XMLTemplates['Param'].format(pid-1, var_name, type_conv))
+                self.xmlHDUs.append(XMLTemplates['HDU'].format(i, pid-1, var_name, type_conv))
+                self.xmlParams.append(XMLTemplates['Param'].format(pid-1, var_name, type_conv,
+                                                                   nfile, i))
 
             # Remove FITS file if exists, and (re)create it
             self.from_pid_blk, self.to_pid_blk = (i_pid, j_pid)
@@ -398,10 +401,11 @@ class Retriever(object):
             gen_files.append(file_name)
             logger.info('Saved file {}'.format(file_name))
 
-            self.xmlProds.append(XMLTemplates['Prod'].format(base_name,
+            self.xmlProds.append(XMLTemplates['Prod'].format(nfile, base_name,
                                                              self.from_pid_blk, self.to_pid_blk,
                                                              '\n'.join(self.xmlHDUs)))
 
+            nfile = nfile + 1
             end_time = time.time()
 
             retr_time_total = retr_time_total + (retr_time - start_time)
@@ -538,9 +542,9 @@ class Retriever(object):
             logger.info('Saved file {}'.format(file_name))
 
             # Generate XML index section
-            self.xmlParams.append(XMLTemplates['Param'].format(pid, var_name, type_conv))
-            self.xmlHDUs.append(XMLTemplates['HDU'].format(i, pid, var_name, type_conv))
-            self.xmlProds.append(XMLTemplates['Prod'].format(base_name,
+            self.xmlParams.append(XMLTemplates['Param'].format(pid, var_name, type_conv, i + 1, i + 1))
+            self.xmlHDUs.append(XMLTemplates['HDU'].format(i + 1, pid, var_name, type_conv))
+            self.xmlProds.append(XMLTemplates['Prod'].format(i + 1, base_name,
                                                              self.from_pid_blk, self.to_pid_blk,
                                                              '\n'.join(self.xmlHDUs)))
 
