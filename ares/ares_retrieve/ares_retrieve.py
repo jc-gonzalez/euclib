@@ -404,6 +404,7 @@ class Retriever(object):
             self.xmlProds.append(XMLTemplates['Prod'].format(nfile, base_name,
                                                              self.from_pid_blk, self.to_pid_blk,
                                                              '\n'.join(self.xmlHDUs)))
+            self.xmlHDUs = []
 
             nfile = nfile + 1
             end_time = time.time()
@@ -547,6 +548,7 @@ class Retriever(object):
             self.xmlProds.append(XMLTemplates['Prod'].format(i + 1, base_name,
                                                              self.from_pid_blk, self.to_pid_blk,
                                                              '\n'.join(self.xmlHDUs)))
+            self.xmlHDUs = []
 
             # Go on
             i = i + 1
