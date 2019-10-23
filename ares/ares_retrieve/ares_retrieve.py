@@ -80,7 +80,7 @@ StringType = 12
 DateTimeType = 13
 
 XMLTemplates = {
-    'XML': """
+    'XML': """<?xml version="1.0" encoding="UTF-8"?>
 <dpd-le1-hktm:HKTMProduct
     xmlns:pro-le1-vis="http://euclid.esa.org/schema/pro/le1/vis"
     xmlns:bas-imp-stc="http://euclid.esa.org/schema/bas/imp/stc"
