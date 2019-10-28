@@ -23,6 +23,15 @@
             "tgt_dir": "$EASIN",
             "args": ""
         },
+        "rcp_hms": {
+            "type": "int",
+            "command": "remote_copy",
+            "host": "$HMSHOST",
+            "user": "$HMSUSER",
+            "pwd": "$HMSPWD",
+            "tgt_dir": "$HMSIN",
+            "args": ""
+        },
         "rcp_le1": {
             "type": "int",
             "command": "remote_copy",
@@ -188,7 +197,7 @@
                         "EAS": [ "rcp_eas" ]
                     }
                 },
-                "edds": {
+                "hktm": {
                     "name": "HKTM",
                     "source": "HMS",
                     "actions": [ "archive", "distribute" ],
@@ -202,7 +211,16 @@
                     "actions": [ "archive", "distribute" ],
                     "target": {
                         "EAS": [ "rcp_eas" ],
+                        "HMS": [ "rcp_hms" ],
                         "QLA": [ "rcp_qla" ]
+                    }
+                },
+                "le1e": {
+                    "name": "LE1 Enhanced Products",
+                    "source": "HMS",
+                    "actions": [ "archive", "distribute" ],
+                    "target": {
+                        "EAS": [ "rcp_eas" ]
                     }
                 }
             }
