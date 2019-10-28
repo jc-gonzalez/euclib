@@ -155,14 +155,17 @@ class App:
         parent.title('{} I/O Simulation Tool'.format(args.element))
 
         # GUI frames
+        frmTit = ttk.Frame(parent)
         frmSend = ttk.LabelFrame(parent, text='Send data files to other systems')
         frmRecv = ttk.LabelFrame(parent, text='Received data files')
         frmLog = ttk.LabelFrame(parent, text='Log info')
 
         #-- Title
-        lblTitle = ttk.Label(parent, text='{} I/O Simulation Tool'.format(args.element),
+        frmTit.pack(side=TOP, fill=X, padx=1, pady=1)
+        lblTitle = ttk.Label(frmTit, text='{} I/O Simulation Tool'.format(args.element),
                              font=('Arial Bold', 16))
-        lblTitle.pack(side=TOP, anchor=W, padx=5, pady=5)
+        lblTitle.pack(side=LEFT, anchor=W, fill=X, expand=YES, padx=5, pady=5)
+        ttk.Button(frmTit, text="Quit", command=self.quit).pack(side=LEFT, expand=NO, fill=X, padx=5)
 
         #-- First frame: send
         frmSend.pack(side=TOP, fill=X, padx=1, pady=1)

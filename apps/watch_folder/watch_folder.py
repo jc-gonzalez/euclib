@@ -77,7 +77,7 @@ dwThrA = None
 monitQueue = None
 launcher = None
 
-def configureLogs(lvl, logfile):
+def configureLogs(lvl, logfile, console):
     """
     Function to configure the output of the log system, to be used across the
     entire application.
@@ -85,31 +85,32 @@ def configureLogs(lvl, logfile):
     :param logfile: Name of the log file
     :return: -
     """
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(lvl)
 
-    # Create handlers
-    c_handler = logging.StreamHandler()
+    # Create handler and formatters, add formatter to handler,
+    #  and add handler to the logger
     f_handler = logging.FileHandler(logfile)
-    c_handler.setLevel(lvl)
     f_handler.setLevel(logging.DEBUG)
-
-    # Create formatters and add it to handlers
-    c_format = logging.Formatter('%(asctime)s %(levelname).1s %(name)s %(module)s:%(lineno)d %(message)s',
-                                 datefmt='%y-%m-%d %H:%M:%S')
     f_format = logging.Formatter('{asctime} {levelname:4s} {name:s} {module:s}:{lineno:d} {message}',
                                  style='{')
-    c_handler.setFormatter(c_format)
     f_handler.setFormatter(f_format)
+    logger.addHandler(f_handler)
+
+    if console:
+        c_handler = logging.StreamHandler()
+        c_handler.setLevel(lvl)
+        c_format = logging.Formatter('%(asctime)s %(levelname).1s %(name)s %(module)s:%(lineno)d %(message)s',
+                                     datefmt='%y-%m-%d %H:%M:%S')
+        c_handler.setFormatter(c_format)
+        logger.addHandler(c_handler)
 
     # Add handlers to the logger
-    logger.addHandler(c_handler)
-    logger.addHandler(f_handler)
     lmodules = os.getenv('LOGGING_MODULES', '').split(':')
     for lname in reversed(lmodules):
         lgr = logging.getLogger(lname)
         if not lgr.handlers:
-            lgr.addHandler(c_handler)
             lgr.addHandler(f_handler)
+            if console: lgr.addHandler(c_handler)
         # logger.debug('Configuring logger with id "{}"'.format(lname))
 
 def getArgs():
@@ -128,7 +129,9 @@ def getArgs():
                         help='Directory to monitor in remote machine, expected format is USER@HOST:DIR')
     parser.add_argument('-l', '--log', dest='logfile', default='watchfolder.log',
                         help='Directory to monitor')
-    parser.add_argument('-d', '--debug', dest='debug', action='store_true',
+    parser.add_argument('-c', '--console', dest='console', action='store_true', default=False,
+                        help='Show log in console')
+    parser.add_argument('-d', '--debug', dest='debug', action='store_true', default=False,
                         help='Activated debug information')
 
     return parser.parse_args()
@@ -310,7 +313,8 @@ def main():
 
     # Set up homogeneous logging system
     configureLogs(lvl=logging.DEBUG if args.debug else logging.INFO,
-                  logfile=args.logfile)
+                  logfile=args.logfile,
+                  console=args.console)
 
     # Start message
     greetings()
