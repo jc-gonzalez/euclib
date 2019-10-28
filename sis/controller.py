@@ -227,7 +227,7 @@ class Controller:
                 if v[0] == '$':
                     act[k] = os.getenv(v[1:], 'UNKNOWN')
         ActionsLauncher.InternalActions.update(predefined_actions)
-        pprint(ActionsLauncher.InternalActions)
+        #pprint(ActionsLauncher.InternalActions)
 
         # Create main folders, and read-me files
         for elem, acronym in ids.items():

@@ -284,7 +284,8 @@ class ActionsLauncher:
                                        folder=act_vars['tgt_dir'],
                                        is_move=(action=='remote_move'))
         except:
-            traceback.print_exc(file=sys.stdout)
+            logger.warning('Something prevented from executing the action')
+#            traceback.print_exc(file=sys.stdout)
 
     def launchActions(self, folder, file, src_dir, tgt_dir):
         """
