@@ -62,7 +62,7 @@ EOF
 # SCI files from SIS
 $PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${SCI_SIS_TO_LE1_DIR} \
-    -R ${SISUSER}@${SISHOST}:${SISBASE}/le1/out/sci \
+    -R ${SISUSER}@${SISHOST}:${SISBASE}/soc/le1/out/sci \
     -l ${SCRIPTPATH}/le1_sci.log $SHOW_LOG_DEBUG &
 
 # LE1 files for HMS (SIS)

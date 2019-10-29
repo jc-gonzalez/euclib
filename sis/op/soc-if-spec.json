@@ -38,7 +38,7 @@
             "host": "$LE1HOST",
             "user": "$LE1USER",
             "pwd": "$LE1PWD",
-            "tgt_dir": "$LE1IN",
+            "tgt_dir": "$LE1IN/",
             "args": ""
         },
         "rcp_qla": {
