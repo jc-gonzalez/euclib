@@ -233,7 +233,7 @@
                     "source": "QLA",
                     "actions": [ "archive", "distribute" ],
                     "target": {
-                        "HMS": [],
+                        "HMS": [ "rcp_hms" ],
                         "EAS": [ "rcp_eas" ]
                     }
                 }
