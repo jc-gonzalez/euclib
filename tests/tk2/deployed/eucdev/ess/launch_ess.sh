@@ -38,7 +38,7 @@ cat <<-EOF >${OSS_TO_SIS_DIR}/actions.json
     "last_update": "",
     "history": [ "Initial creation" ],
     "actions": [ { "id": "send_to_soc_sis_ess", "type": "cmd",
-                   "command": "$TRANSFER", "args": "{file_name} OSS_TO_SIS_DEST"} ]
+                   "command": "$TRANSFER", "args": "{file_name} $OSS_TO_SIS_DEST"} ]
 }
 EOF
 
