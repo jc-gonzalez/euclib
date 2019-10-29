@@ -25,7 +25,7 @@ cat <<-EOF >${SSR_FROM_SOC_TO_MOC_DIR}/actions.json
 {
     "last_update": "",
     "history": [ "Initial creation" ],
-    "actions": [ "archive" ]
+    "actions": []
 }
 EOF
 

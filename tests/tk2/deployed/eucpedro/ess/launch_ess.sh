@@ -26,7 +26,7 @@ cat <<-EOF >${SRV_FROM_SOC_TO_ESS_DIR}/actions.json
 {
     "last_update": "",
     "history": [ "Initial creation" ],
-    "actions": [ "archive" ]
+    "actions": []
 }
 EOF
 
