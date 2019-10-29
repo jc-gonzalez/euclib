@@ -32,7 +32,7 @@ EOF
 ##====== Local and Remote folders polling
 
 # Any file to anywhere to EAS
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${EAS_INBOX_DIR} \
     -l ${SCRIPTPATH}/eas_in.log .log $SHOW_LOG_DEBUG  &
 
@@ -43,5 +43,5 @@ sleep 1
 LOGS=$(echo ${SCRIPTPATH}/eas_in.log)
 touch $LOGS
 
-xterm $XTERM_LOG_OPTS -e multitail -F ~/bin/multitail.conf -cS log4j $LOGS && \
+$SHOW_LOGS $LOGS && \
 kill -- -$$

@@ -37,14 +37,14 @@ EOF
 ##====== Local and Remote folders polling
 
 # SCI files from SIS
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${SCI_SIS_TO_LE1_DIR} \
     -R ${SISUSER}@${SISHOST}:${SISBASE}/le1/out/sci \
     -l ${SCRIPTPATH}/le1_sci.log $SHOW_LOG_DEBUG &
 
 ##====== Element I/O GUI
 QLA_TO_HMS_DIR=${SCRIPTPATH}/io/out/qla
-python3 ${EUCLIB_PATH}/apps/simelem/simelem.py \
+$PYTHON ${EUCLIB_PATH}/apps/simelem/simelem.py \
     -e LE1 -f $HOME/qpf/data/archive \
     -i ${SCI_SIS_TO_LE1_DIR} \
     -o HMS:${QLA_TO_HMS} \
@@ -57,5 +57,5 @@ sleep 1
 LOGS=$(echo ${SCRIPTPATH}/le1_{sim,sci}.log)
 touch $LOGS
 
-xterm $XTERM_LOG_OPTS -e multitail -F ~/bin/multitail.conf -cS log4j $LOGS && \
+$SHOW_LOGS $LOGS && \
 kill -- -$$

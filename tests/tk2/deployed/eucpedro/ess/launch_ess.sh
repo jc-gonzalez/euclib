@@ -45,20 +45,20 @@ EOF
 ##====== Local and Remote folders polling
 
 # SRV files from IOT to SOC.ESS
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${SRV_FROM_SOC_TO_ESS_DIR} \
     -R ${SRV_FROM_SOC_TO_ESS_DEST} \
     -l ${SCRIPTPATH}/ess_srv.log $SHOW_LOG_DEBUG &
 
 # OSS files from SOC.ESS to SIS
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${OSS_TO_SIS_DIR} \
     -R ${OSS_TO_SIS_DEST} \
     -l ${SCRIPTPATH}/ess_oss.log $SHOW_LOG_DEBUG &
 
 ##====== Element I/O GUI
 
-python3 ${EUCLIB_PATH}/apps/simelem/simelem.py \
+$PYTHON ${EUCLIB_PATH}/apps/simelem/simelem.py \
     -e ESS -f ${SCRIPTPATH}/io/arc \
     -i ${SRV_FROM_SOC_TO_ESS_DIR} \
     -o SIS:${OSS_TO_SIS_DEST} \
@@ -71,5 +71,5 @@ sleep 1
 LOGS=$(echo ${SCRIPTPATH}/ess_{sim,srv,oss}.log)
 touch $LOGS
 
-xterm $XTERM_LOG_OPTS -e multitail -F ~/bin/multitail.conf -cS log4j $LOGS && \
+$SHOW_LOGS $LOGS && \
 kill -- -$$

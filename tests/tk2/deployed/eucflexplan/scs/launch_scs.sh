@@ -38,13 +38,13 @@ EOF
 ##====== Local and Remote folders polling
 
 # SSR files from SOC.ESS
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${POR_SCS_TO_SIS_DIR} \
     -l ${SCRIPTPATH}/scs_por.log $SHOW_LOG_DEBUG &
 
 ##====== Element I/O GUI
 
-python3 ${EUCLIB_PATH}/apps/simelem/simelem.py \
+$PYTHON ${EUCLIB_PATH}/apps/simelem/simelem.py \
     -e SCS -f ${SCRIPTPATH}/io/arc \
     -i ${SCRIPTPATH}/io/in \
     -o SIS:${POR_SCS_TO_SIS_DIR} \
@@ -57,7 +57,7 @@ sleep 1
 LOGS=$(echo ${SCRIPTPATH}/scs_{sim,por}.log)
 touch $LOGS
 
-xterm $XTERM_LOG_OPTS -e multitail -F ~/bin/multitail.conf -cS log4j $LOGS && \
+$SHOW_LOGS $LOGS && \
 kill -- -$$
 
 

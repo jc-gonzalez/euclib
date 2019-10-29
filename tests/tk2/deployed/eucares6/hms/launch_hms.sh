@@ -89,36 +89,36 @@ EOF
 ##====== Remote folders polling
 
 # EDDS files to SOC[SIS].HMS
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${HKTM_HMS_FROM_SIS_DIR} \
     -R ${HKTM_HMS_FROM_SIS_DEST} \
     -l ${SCRIPTPATH}/hms_edds.log $SHOW_LOG_DEBUG &
 
 # HKTM files to SOC[SIS]
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${HKTM_HMS_TO_SIS_DIR} \
     -l ${SCRIPTPATH}/hms_hktm.log $SHOW_LOG_DEBUG &
 
 # LE1 files to SOC[SIS].HMS
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${LE1_HMS_FROM_SIS_DIR} \
     -R ${LE1_HMS_FROM_SIS_DEST} \
     -l ${SCRIPTPATH}/hms_le1.log $SHOW_LOG_DEBUG &
 
 # LE1 enh files to SOC[SIS]
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${LE1_HMS_TO_SIS_DIR} \
     -l ${SCRIPTPATH}/hms_le1e.log $SHOW_LOG_DEBUG &
 
 # QLA files to SOC[SIS].HMS
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${QLA_HMS_FROM_SIS_DIR} \
     -R ${QLA_HMS_FROM_SIS_DEST} \
     -l ${SCRIPTPATH}/hms_qla.log $SHOW_LOG_DEBUG &
 
 ##====== Element I/O GUI
 
-python3 ${EUCLIB_PATH}/apps/simelem/simelem.py \
+$PYTHON ${EUCLIB_PATH}/apps/simelem/simelem.py \
     -e HMS -f ${SCRIPTPATH}/io/arc \
     -i ${HKTM_HMS_FROM_SIS_DIR},${LE1_HMS_FROM_SIS_DIR},${QLA_HMS_FROM_SIS_DIR} \
     -o HMS:${HKTM_HMS_TO_SIS_DIR},LE1:${LE1_HMS_TO_SIS_DIR} \
@@ -131,6 +131,6 @@ sleep 1
 LOGS=$(echo ${SCRIPTPATH}/hms_{sim,edds,hktm,le1,le1e,qla}.log)
 touch $LOGS
 
-#xterm $XTERM_LOG_OPTS -e multitail -F ~/bin/multitail.conf -cS log4j $LOGS && \
+#$SHOW_LOGS $LOGS && \
 tail -f $LOGS && \
 kill -- -$$

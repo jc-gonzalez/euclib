@@ -57,24 +57,24 @@ EOF
 ##====== Local and Remote folders polling
 
 # SSR files from SOC.ESS
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${SSR_FROM_SOC_TO_MOC_DIR} \
     -R ${SISUSER}@${SISHOST}:${SISBASE}/moc/out/ssr \
     -l ${SCRIPTPATH}/moc_ssr.log $SHOW_LOG_DEBUG &
 
 # EDDS files to SOC[SIS].HMS
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${EDDS_MOC_TO_SIS_DIR} \
     -l ${SCRIPTPATH}/moc_edds.log $SHOW_LOG_DEBUG &
 
 # SCI files to SOC[SIS].LE1
-python3 ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
+$PYTHON ${EUCLIB_PATH}/apps/watch_folder/watch_folder.py \
     -D ${SCI_MOC_TO_SIS_DIR} \
     -l ${SCRIPTPATH}/moc_sci.log $SHOW_LOG_DEBUG &
 
 ##====== Element I/O GUI
 
-python3 ${EUCLIB_PATH}/apps/simelem/simelem.py \
+$PYTHON ${EUCLIB_PATH}/apps/simelem/simelem.py \
     -e MOC -f ${SCRIPTPATH}/io/arc \
     -i ${SSR_FROM_SOC_TO_MOC_DIR} \
     -o HMS:${EDDS_MOC_TO_SIS_DIR},LE1:${SCI_MOC_TO_SIS_DIR} \
@@ -87,5 +87,5 @@ sleep 1
 LOGS=$(echo ${SCRIPTPATH}/moc_{sim,ssr,edds,sci}.log)
 touch $LOGS
 
-xterm $XTERM_LOG_OPTS -e multitail -F ~/bin/multitail.conf -cS log4j $LOGS && \
+$SHOW_LOGS $LOGS && \
 kill -- -$$
