@@ -30,7 +30,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(PKG_FILEDIR, PKG_BASEDIR,
 PYTHON2 = False
 PY_NAME = "python3"
 STRING = str
-LOGGER = logging.getLogger()
+
+logger = logging.getLogger()
 
 #----------------------------------------------------------------------
 

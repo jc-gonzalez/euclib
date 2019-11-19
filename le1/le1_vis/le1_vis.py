@@ -18,7 +18,6 @@ import logging
 
 from pprint import pprint
 from struct import unpack
-from enum import IntEnum
 
 from basic import Encoded
 from le1_base import SEQUENCE_ID_NAME, \
@@ -39,7 +38,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(PKG_FILEDIR, PKG_BASEDIR,
 PYTHON2 = False
 PY_NAME = "python3"
 STRING = str
-LOGGER = logging.getLogger()
+
+logger = logging.getLogger()
 
 #----------------------------------------------------------------------
 
@@ -68,47 +68,12 @@ class VISSize:
     ROWS_QUAD = ROWS_HALF
     COLS_QUAD = COLS_HALF
 
+    QUAD_PRE_SCAN_COLS = 51
+    QUAD_OVER_SCAN_COLS = 20
 
-class InputType(IntEnum):
-    RAW = 0,       # ICD 4.0 draft 9
-    RAW_PREV = 1,  # ICD 4.0 draft 9 almost
-    RAW_OLD = 2,   # ICD 3.4
-    LE1 = 3,
-    UNKNOWN = -1
-
-    @staticmethod
-    def inputType(s):
-        """
-        Convert a string to a InputType, if possible
-        :param s: the string
-        :return: the input type enumerator
-        """
-        return max([y if s in x else InputType.UNKNOWN for x,y in Str2InputType])
-
-Str2InputType = [(['raw', 'icd-4.0d9', '4.0d9'], InputType.RAW),
-                 (['raw-prev', 'raw_prev', 'prev', 'icd-4.0d8', '4.0d8'], InputType.RAW_PREV),
-                 (['raw-old', 'raw_old', 'old', 'icd-3.4'], InputType.RAW_OLD),
-                 (['le1'], InputType.LE1)]
-InputTypeStrChoices = [x for sl,t in Str2InputType for x in sl]
-
-class OutputType(IntEnum):
-    LE1 = 0,
-    FULL_FPA = 1,
-    UNKNOWN = -1
-
-    @staticmethod
-    def outputType(s):
-        """
-        Convert a string to a OutputType, if possible
-        :param s: the string
-        :return: the output type enumerator
-        """
-        return max([y if s in x else OutputType.UNKNOWN for x,y in Str2OutputType])
-
-Str2OutputType = [(['le1'], OutputType.LE1),
-                  (['fullfpa', 'full-fpa', 'fpa'], OutputType.FULL_FPA)]
-OutputTypeStrChoices = [x for sl,t in Str2OutputType for x in sl]
-
+    CHARGE_INJEC_STRUCT_ROWS = 20
+    QUAD_CHARGE_INJEC_STRUCT_ROWS = CHARGE_INJEC_STRUCT_ROWS // 2
+    
 
 class RAWVISHeader:
     """
@@ -116,6 +81,10 @@ class RAWVISHeader:
 
     LE1 VIS RAW Data File Header (compliant with ICD 4.0 draft 9)
     """
+    InitialMark = 0xFFFFFFFF
+    EndMark = 0xFFFFFFFF
+
+
     def __init__(self):
         """
         Initialization method
@@ -208,7 +177,7 @@ class RAWVISHeader:
         :return: True if unpacking is OK, False otherwise
         """
         bindata = fh.read(self.size)
-        pprint(bindata)
+        logger.debug(bindata)
         return self.unpack(bindata)
 
     def write(self, fh):
@@ -230,50 +199,50 @@ class RAWVISHeader:
         Show the header information in a nice way
         :return: -
         """
-        print(('-' * 60) + '\n' +
-              ('Space_Wire_Packet_Header: {}\n' +
-               'Operation_Id (SOC Id)     {:010d}\n' +
-               'Compression_Info:         {}\n' +
-               'Start_Time (MJD):         {}\n' +
-               'Exposure_Duration:        {}\n' +
-               'Image_Size:               {}\n' +
-               'Vertical_Start:           {}\n' +
-               'Vertical_End:             {}\n' +
-               'Mdu_Size:                 {}\n' +
-               'End_Time (MJD)            {}\n' +
-               'Sequence_Id:              {} - {}\n' +
-               'Config3D_Id:              {}\n' +
-               'Version_SeqConf:          {}\n' +
-               'Readout_Count:            {}\n' +
-               'Config_Tables:            {}\n' +
-               'TC_Parameters:            {}\n' +
-               'ASW_Version:              {}\n' +
-               'RSU_Cfg_Status:           {}\n' +
-               'CRC_16:                   {}\n' +
-               'Space_Wire_Packet_Footer: {}\n' +
-               '{} bytes\n').\
-              format(self.spaceWirePcktHdr,
-                     self.operationId.data,
-                     self.compressionInfo,
-                     self.startTime,
-                     self.exposureDuration,
-                     self.imageSize,
-                     self.verticalStart.data,
-                     self.verticalEnd.data,
-                     self.mduSize,
-                     self.endTime,
-                     self.sequenceId.data, SEQUENCE_ID_NAME[self.sequenceId.data],
-                     self.config3DId,
-                     self.versionSeqConf,
-                     self.readoutCount,
-                     self.configTables,
-                     '<none>', # self.tcParameters,
-                     self.aswVersion,
-                     self.rsuCfgStatus,
-                     self.crc16,
-                     self.spaceWirePcktFtr,
-                     self.size) +
-              ('-' * 60) + '\n')
+        return (('-' * 60) + '\n' +
+                ('Space_Wire_Packet_Header: {}\n' +
+                 'Operation_Id (SOC Id)     {:010d}\n' +
+                 'Compression_Info:         {}\n' +
+                 'Start_Time (MJD):         {}\n' +
+                 'Exposure_Duration:        {}\n' +
+                 'Image_Size:               {}\n' +
+                 'Vertical_Start:           {}\n' +
+                 'Vertical_End:             {}\n' +
+                 'Mdu_Size:                 {}\n' +
+                 'End_Time (MJD)            {}\n' +
+                 'Sequence_Id:              {} - {}\n' +
+                 'Config3D_Id:              {}\n' +
+                 'Version_SeqConf:          {}\n' +
+                 'Readout_Count:            {}\n' +
+                 'Config_Tables:            {}\n' +
+                 'TC_Parameters:            {}\n' +
+                 'ASW_Version:              {}\n' +
+                 'RSU_Cfg_Status:           {}\n' +
+                 'CRC_16:                   {}\n' +
+                 'Space_Wire_Packet_Footer: {}\n' +
+                 '{} bytes\n').\
+                format(self.spaceWirePcktHdr,
+                       self.operationId.data,
+                       self.compressionInfo,
+                       self.startTime,
+                       self.exposureDuration,
+                       self.imageSize,
+                       self.verticalStart.data,
+                       self.verticalEnd.data,
+                       self.mduSize,
+                       self.endTime,
+                       self.sequenceId.data, SEQUENCE_ID_NAME[self.sequenceId.data],
+                       self.config3DId,
+                       self.versionSeqConf,
+                       self.readoutCount,
+                       self.configTables,
+                       '<none>', # self.tcParameters,
+                       self.aswVersion,
+                       self.rsuCfgStatus,
+                       self.crc16,
+                       self.spaceWirePcktFtr,
+                       self.size) +
+                ('-' * 60))
 
 
 class RAWVISHeader_prev(RAWVISHeader):
@@ -287,6 +256,8 @@ class RAWVISHeader_prev(RAWVISHeader):
         Initialization method
         """
         super().__init__()
+
+        self.aswVersion = Encoded('ASW_Version', '>H', 2)
 
         self.fields = [
             self.spaceWirePcktHdr,
@@ -317,50 +288,50 @@ class RAWVISHeader_prev(RAWVISHeader):
         Show the header information in a nice way
         :return: -
         """
-        print(('-' * 60) + '\n' +
-              ('Space_Wire_Packet_Header: {}\n' +
-               'Operation_Id (SOC Id)     {:010d}\n' +
-               'Compression_Info:         {}\n' +
-               'Start_Time (MJD):         {}\n' +
-               'Exposure_Duration:        {}\n' +
-               'Image_Size:               {}\n' +
-               'Vertical_Start:           {}\n' +
-               'Vertical_End:             {}\n' +
-               'Mdu_Size:                 {}\n' +
-               'End_Time (MJD)            {}\n' +
-               'Sequence_Id:              {} - {}\n' +
-               'Config3D_Id:              {}\n' +
-               'Version_SeqConf:          {}\n' +
-               'Readout_Count:            {}\n' +
-               'Config_Tables:            {}\n' +
-               'TC_Parameters:            {}\n' +
-               'ASW_Version:              {}\n' +
-               # 'RSU_Cfg_Status:           {}\n' +
-               'CRC_16:                   {}\n' +
-               'Space_Wire_Packet_Footer: {}\n' +
-               '{} bytes\n').\
-              format(self.spaceWirePcktHdr,
-                     self.operationId.data,
-                     self.compressionInfo,
-                     self.startTime,
-                     self.exposureDuration,
-                     self.imageSize,
-                     self.verticalStart.data,
-                     self.verticalEnd.data,
-                     self.mduSize,
-                     self.endTime,
-                     self.sequenceId.data, SEQUENCE_ID_NAME[self.sequenceId.data],
-                     self.config3DId,
-                     self.versionSeqConf,
-                     self.readoutCount,
-                     self.configTables,
-                     '<none>', # self.tcParameters,
-                     self.aswVersion,
-                     # self.rsuCfgStatus,
-                     self.crc16,
-                     self.spaceWirePcktFtr,
-                     self.size) +
-              ('-' * 60) + '\n')
+        return (('-' * 60) + '\n' +
+                ('Space_Wire_Packet_Header: {}\n' +
+                 'Operation_Id (SOC Id)     {:010d}\n' +
+                 'Compression_Info:         {}\n' +
+                 'Start_Time (MJD):         {}\n' +
+                 'Exposure_Duration:        {}\n' +
+                 'Image_Size:               {}\n' +
+                 'Vertical_Start:           {}\n' +
+                 'Vertical_End:             {}\n' +
+                 'Mdu_Size:                 {}\n' +
+                 'End_Time (MJD)            {}\n' +
+                 'Sequence_Id:              {} - {}\n' +
+                 'Config3D_Id:              {}\n' +
+                 'Version_SeqConf:          {}\n' +
+                 'Readout_Count:            {}\n' +
+                 'Config_Tables:            {}\n' +
+                 'TC_Parameters:            {}\n' +
+                 'ASW_Version:              {}\n' +
+                 # 'RSU_Cfg_Status:           {}\n' +
+                 'CRC_16:                   {}\n' +
+                 'Space_Wire_Packet_Footer: {}\n' +
+                 '{} bytes\n').\
+                format(self.spaceWirePcktHdr,
+                       self.operationId.data,
+                       self.compressionInfo,
+                       self.startTime,
+                       self.exposureDuration,
+                       self.imageSize,
+                       self.verticalStart.data,
+                       self.verticalEnd.data,
+                       self.mduSize,
+                       self.endTime,
+                       self.sequenceId.data, SEQUENCE_ID_NAME[self.sequenceId.data],
+                       self.config3DId,
+                       self.versionSeqConf,
+                       self.readoutCount,
+                       self.configTables,
+                       '<none>', # self.tcParameters,
+                       self.aswVersion,
+                       # self.rsuCfgStatus,
+                       self.crc16,
+                       self.spaceWirePcktFtr,
+                       self.size) +
+                ('-' * 60))
 
 
 class RAWVISHeader_old(RAWVISHeader):
@@ -405,50 +376,50 @@ class RAWVISHeader_old(RAWVISHeader):
         Show the header information in a nice way
         :return: -
         """
-        print(('-' * 60) + '\n' +
-              ('Space_Wire_Packet_Header: {}\n' +
-               'Operation_Id (SOC Id)     {:010d}\n' +
-               'Compression_Info:         {}\n' +
-               'Start_Time (MJD):         {}\n' +
-               'Exposure_Duration:        {}\n' +
-               'Image_Size:               {}\n' +
-               'Vertical_Start:           {}\n' +
-               'Vertical_End:             {}\n' +
-               'Mdu_Size:                 {}\n' +
-#               'End_Time (MJD)            {}\n' +
-#               'Sequence_Id:              {} - {}\n' +
-#               'Config3D_Id:              {}\n' +
-#               'Version_SeqConf:          {}\n' +
-#               'Readout_Count:            {}\n' +
-#               'Config_Tables:            {}\n' +
-#               'TC_Parameters:            {}\n' +
-#               'ASW_Version:              {}\n' +
-#               # 'RSU_Cfg_Status:           {}\n' +
-               'CRC_16:                   {}\n' +
-               'Space_Wire_Packet_Footer: {}\n' +
-               '{} bytes\n').\
-              format(self.spaceWirePcktHdr,
-                     self.operationId.data,
-                     self.compressionInfo,
-                     self.startTime,
-                     self.exposureDuration,
-                     self.imageSize,
-                     self.verticalStart.data,
-                     self.verticalEnd.data,
-                     self.mduSize,
-#                     self.endTime,
-#                     self.sequenceId.data, SEQUENCE_ID_NAME[self.sequenceId.data],
-#                     self.config3DId,
-#                     self.versionSeqConf,
-#                     self.readoutCount,
-#                     self.configTables,
-#                     '<none>', # self.tcParameters,
-#                     self.aswVersion,
-#                     # self.rsuCfgStatus,
-                     self.crc16,
-                     self.spaceWirePcktFtr,
-                     self.size) +
-              ('-' * 60) + '\n')
+        return (('-' * 60) + '\n' +
+                ('Space_Wire_Packet_Header: {}\n' +
+                 'Operation_Id (SOC Id)     {:010d}\n' +
+                 'Compression_Info:         {}\n' +
+                 'Start_Time (MJD):         {}\n' +
+                 'Exposure_Duration:        {}\n' +
+                 'Image_Size:               {}\n' +
+                 'Vertical_Start:           {}\n' +
+                 'Vertical_End:             {}\n' +
+                 'Mdu_Size:                 {}\n' +
+#                 'End_Time (MJD)            {}\n' +
+#                 'Sequence_Id:              {} - {}\n' +
+#                 'Config3D_Id:              {}\n' +
+#                 'Version_SeqConf:          {}\n' +
+#                 'Readout_Count:            {}\n' +
+#                 'Config_Tables:            {}\n' +
+#                 'TC_Parameters:            {}\n' +
+#                 'ASW_Version:              {}\n' +
+#                 # 'RSU_Cfg_Status:           {}\n' +
+                 'CRC_16:                   {}\n' +
+                 'Space_Wire_Packet_Footer: {}\n' +
+                 '{} bytes\n').\
+                format(self.spaceWirePcktHdr,
+                       self.operationId.data,
+                       self.compressionInfo,
+                       self.startTime,
+                       self.exposureDuration,
+                       self.imageSize,
+                       self.verticalStart.data,
+                       self.verticalEnd.data,
+                       self.mduSize,
+#                       self.endTime,
+#                       self.sequenceId.data, SEQUENCE_ID_NAME[self.sequenceId.data],
+#                       self.config3DId,
+#                       self.versionSeqConf,
+#                       self.readoutCount,
+#                       self.configTables,
+#                       '<none>', # self.tcParameters,
+#                       self.aswVersion,
+#                       # self.rsuCfgStatus,
+                       self.crc16,
+                       self.spaceWirePcktFtr,
+                       self.size) +
+                ('-' * 60))
 
 
 class RAWVISSciDataPacket:
@@ -457,6 +428,10 @@ class RAWVISSciDataPacket:
 
     LE1 VIS RAW Data File Science Data Packet
     """
+
+    InitialMark = 0xEEEEEEEE
+    EndMark = 0xFFFFFFFF
+
     def __init__(self):
         """
         Initialization method
@@ -565,7 +540,7 @@ class RAWVISSciDataPacket:
         bindata = fh.read(self.sizeHdr)
         self.rawdata = bindata
         if not self.unpackHdr(bindata):
-            pprint(bindata)
+            logger.debug(bindata)
             return False
         if self.dataLength.data < 1:
             fh.seek(-self.sizeHdr, 1)
@@ -595,24 +570,24 @@ class RAWVISSciDataPacket:
         Show the header information in a nice way
         :return: -
         """
-        print(('-' * 60) + '\n' +
-              ('Space_Wire_Packet_Header: {}\n' +
-               'Operation_Id (SOC Id)     {:010d}\n' +
-               'CCD-ID Col/Row:           {}\n' +
-               'Data Length:              {} bytes\n' +
-               'CRC_16 Hdr:               {}\n' +
-               'CRC_16 Data:              {}\n' +
-               'Space_Wire_Packet_Footer: {}\n' +
-               '{} bytes\n').\
-              format(self.spaceWirePcktHdr,
-                     self.operationId.data,
-                     self.ccdId,
-                     self.dataLength,
-                     self.crc16Hdr,
-                     self.crc16Data,
-                     self.spaceWirePcktFtr,
-                     self.size) +
-              ('-' * 60))
+        return (('-' * 60) + '\n' +
+                ('Space_Wire_Packet_Header: {}\n' +
+                 'Operation_Id (SOC Id)     {:010d}\n' +
+                 'CCD-ID Col/Row:           {}\n' +
+                 'Data Length:              {} bytes\n' +
+                 'CRC_16 Hdr:               {}\n' +
+                 'CRC_16 Data:              {}\n' +
+                 'Space_Wire_Packet_Footer: {}\n' +
+                 '{} bytes\n').\
+                format(self.spaceWirePcktHdr,
+                       self.operationId.data,
+                       self.ccdId,
+                       self.dataLength,
+                       self.crc16Hdr,
+                       self.crc16Data,
+                       self.spaceWirePcktFtr,
+                       self.size) +
+                ('-' * 60))
 
 
 class LE1VISProduct:

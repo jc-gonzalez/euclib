@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-le1_vis.py
+vis_converter.py
 
-Module with the LE1 VIS Data structures
+Converter RAW to LE1 VIS products
 """
 #----------------------------------------------------------------------
 
@@ -19,9 +19,9 @@ import argparse
 
 from pprint import pprint
 
-from le1_vis import InputType, OutputType, \
-    InputTypeStrChoices, OutputTypeStrChoices
-from raw2vis import RAW_to_VIS_Processor
+from raw2vis import RAW_to_VIS_Processor, \
+                    InputType, OutputType, \
+                    InputTypeStrChoices, OutputTypeStrChoices
 
 #----------------------------------------------------------------------
 
@@ -53,16 +53,18 @@ __maintainer__ = "J C Gonzalez"
 
 #----------------------------------------------------------------------
 
-def configure_logs():
-    logger.setLevel(logging.DEBUG)
+def configure_logs(debugMode=False):
+    """
+    Configure logging infrastructure for the script
+    :return: -
+    """
+    logger.setLevel(logging.DEBUG if debugMode else logging.INFO)
 
     # Create handlers
     c_handler = logging.StreamHandler()
-    c_handler.setLevel(logging.INFO)
+    c_handler.setLevel(logging.DEBUG if debugMode else logging.INFO)
 
     # Create formatters and add it to handlers
-    #c_format = logging.Formatter('%(asctime)s %(levelname).1s %(name)s %(module)s:%(lineno)d %(message)s',
-    #                             datefmt='%y-%m-%d %H:%M:%S')
     c_format = logging.Formatter('%(asctime)s %(levelname).1s %(module)s:%(lineno)d %(message)s')
     c_handler.setFormatter(c_format)
 
@@ -75,7 +77,6 @@ def configure_logs():
 def get_args():
     """
     Parse arguments from command line
-
     :return: args structure
     """
     parser = argparse.ArgumentParser(description='Test script to enhance LE1 products',
@@ -90,6 +91,8 @@ def get_args():
                         help='Input file name')
     parser.add_argument('-o', '--output_dir', dest='output_dir',
                         help='Output file directory', default='.')
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
+                        help='Activate verbose logging mode', default=False)
     return parser.parse_args()
 
 def greetings():
@@ -112,8 +115,8 @@ def parse_args():
         logger.fatal(f'Non-supported input file type "{args.itype}"')
 
     args.output_type = OutputType.outputType(args.otype)
-    if args.output_type == InputType.UNKNOWN:
-        logger.fatal(f'Non-supported output file type "{args.itype}"')
+    if args.output_type == OutputType.UNKNOWN:
+        logger.fatal(f'Non-supported output file type "{args.otype}"')
 
     if args.input_type == InputType.LE1:
         logger.fatal('Adaptation of an input LE1 is not yet supported')
@@ -125,9 +128,8 @@ def main():
     """
     Main program
     """
-    configure_logs()
-
     args = parse_args()
+    configure_logs(args.verbose)
 
     # Say hello, and list process parameters
     greetings()
