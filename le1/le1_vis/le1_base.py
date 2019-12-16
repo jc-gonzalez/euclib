@@ -33,7 +33,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(PKG_FILEDIR, PKG_BASEDIR,
 PYTHON2 = False
 PY_NAME = "python3"
 STRING = str
-LOGGER = logging.getLogger()
+
+logger = logging.getLogger()
 
 #----------------------------------------------------------------------
 
@@ -135,6 +136,11 @@ class CompressionInfo(Encoded):
         """
         Set the different components of the Compression Info object,
         or the entire set of bytes at once
+        :param mode: Sets the internal parameter mode
+        :param compr_type: Sets the internal parameter compr_type
+        :param compr_prs: Sets the internal parameter compr_prs
+        :param compr_info: Sets the compount parameter (entire value)
+        :return:
         """
         if compr_info is None:
             self.mode = mode
@@ -152,6 +158,10 @@ class CompressionInfo(Encoded):
     def pack(self, mode=None, compr_type=None, compr_prs=None, compr_info=None):
         """
         Pack object into binary string
+        :param mode: Set the individual, internal parameter mode
+        :param compr_type: Set the individual, internal parameter compr_type
+        :param compr_prs: Set the individual, internal parameter compr_prs
+        :param compr_info: Set the entire value
         :return: The resulting packed bin. string
         """
         if (mode is not None) or (compr_info is not None):
@@ -161,6 +171,8 @@ class CompressionInfo(Encoded):
     def unpack(self, binstr):
         """
         Unpack the object components from the binary string provided
+        :param binstr: The binary string to unpack
+        :return:
         """
         _ = super().unpack(binstr)
         self.mode = (self.data >> 14) & 0x00000003
@@ -173,8 +185,11 @@ class CompressionInfo(Encoded):
         Provides a info string for the underlying variable
         :return: The info string in the form 'name: value'
         """
-        return '(Mode: {}, ComprType: {}, ComprPrs: {} px per block)'.\
-            format('SCIENCE' if self.mode == ComprMode.SCIENCE else 'MANUAL',
+        return '{:>016s} (Mode: {} = {}, ComprType: {} = {}, ComprPrs: {} px per block)'.\
+            format(bin(self.data)[2:],
+                   self.mode,
+                   'SCIENCE' if self.mode == ComprMode.SCIENCE.value else 'MANUAL',
+                   self.compr_type,
                    ['No Compr',
                     '121 Without reordering',
                     '121 With reordering', ''][self.compr_type],

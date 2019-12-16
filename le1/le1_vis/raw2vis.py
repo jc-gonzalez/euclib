@@ -18,15 +18,19 @@ import logging
 
 import numpy as np
 
+import ricecomp
+#import risotto
+
 from astropy.io import fits
-#from pprint import pprint
+from pprint import pprint
 from struct import Struct
 from enum import IntEnum
 
 from le1_vis import RAWVISHeader, RAWVISHeader_prev, RAWVISHeader_old, \
                     RAWVISSciDataPacket, \
                     VISSize, read_4_byte_word
-
+from le1_base import ComprType
+from array import array
 
 #----------------------------------------------------------------------
 
@@ -79,6 +83,7 @@ Str2InputType = [(['raw', 'icd-4.0d9'], InputType.RAW),
                  (['raw-old', 'icd-3.4'], InputType.RAW_OLD),
                  (['le1'], InputType.LE1)]
 InputTypeStrChoices = [x for sl,t in Str2InputType for x in sl]
+
 
 class OutputType(IntEnum):
     LE1 = 0,
@@ -140,6 +145,25 @@ class RAW_to_VIS_Processor:
 
         #logger.info('{}'.format(self.ext2quad))
 
+    def defineQuadrant(self, row, col):
+        """
+        Sets the instance flags according to the quadrant where (row,col) is located
+        :param row: The row
+        :param col: The column
+        :return: -
+        """
+        self.isQuadE = self.isQuadF = self.isQuadG = self.isQuadH = False
+        if row < VISSize.ROWS_HALF:
+            self.isQuadE = col < VISSize.COLS_HALF
+            self.isQuadF = not self.isQuadE
+        else:
+            self.isQuadH = col < VISSize.COLS_HALF
+            self.isQuadG = not self.isQuadH
+        self.isQuadEorF = self.isQuadE or self.isQuadF
+        self.isQuadGorH = self.isQuadG or self.isQuadH
+        self.isQuadEorH = self.isQuadE or self.isQuadH
+        self.isQuadForG = self.isQuadF or self.isQuadG
+
     def create_internal_structures(self):
         """
         Create header and packet structures, depending on the
@@ -150,6 +174,115 @@ class RAW_to_VIS_Processor:
                        RAWVISHeader_old][int(self.input_type)]()
         self.visSciPck = RAWVISSciDataPacket()
 
+    def uncompressData(self, bindata):
+        """
+        Unpack data from file and uncompress is (121)
+        :param bindata: The data obtained from the input file
+        :return: The uncompressed data
+        """
+        rawdata = np.frombuffer(bindata, dtype=np.uint8)
+        #return np.linspace(0, VISSize.COLS_HALF, VISSize.COLS_HALF, dtype=np.uint16)
+        try:
+            # Try to decompress data
+            print('rawdata: ',rawdata.shape)
+            dataDec = np.zeros((VISSize.COLS_HALF,), dtype=np.uint16)
+            dataDec = ricecomp.rdecomp(rawdata, np.uint16, VISSize.COLS_HALF, self.comprPrs)
+            print('dataDec: ',dataDec.shape)
+            #rowUpck = Struct('<{}H'.format(VISSize.COLS_HALF))
+            #return np.array(rowUpck.unpack(dataDec), dtype=np.uint16)
+            return dataDec
+        except Exception as ee:
+            print(ee, flush=True)
+            #with open("bindata.bin", "wb") as fh:
+            #    fh.write(bindata)
+            #raise
+            return dataDec
+
+    def storeDataAtImageDirect(self, ccd, rw, cl, data):
+        """
+        Place the data of the row obtained into the final image
+        :param ccdn: the CCD number
+        :param rw: the row in the CCD
+        :param cl: the column in the CCD
+        :param data: the data (already uncompressed)
+        :return:
+        """
+        if cl < VISSize.COLS_HALF:  # Quadrants E & H
+            self.images[ccd][rw, 0:VISSize.COLS_HALF] = data[:]
+        else:  # Quadrants F & G
+            self.images[ccd][rw, -1:-VISSize.COLS_HALF - 1:-1] = data[:]
+
+    def storeDataAtImageReordered(self, ccdn, row, col, dataRow):
+        """
+        Take the uncompressed data and reordered in the final image buffer
+        :param ccdn: the CCD number
+        :param row: the row in the CCD
+        :param col: the column in the CCD
+        :param dataRow: the data (already uncompressed)
+        :return: -
+        """
+        self.is2RowArea = (-1 <= (row - VISSize.ROWS_HALF) <= 2)
+        regions = (4 if not self.is2RowArea else 2)
+        colblk = VISSize.COLS_HALF // regions
+
+        dataRow = np.transpose(dataRow.reshape([i for i in reversed(dataRow.shape)]))
+
+        idx = 0
+        for ridx in range(0, regions):
+            if self.isQuadEorH: # Quadrants E or H
+                print("({},{}:{}) <- {}:{}, ".format(ridx, col, col + colblk, idx, idx + colblk), end='', flush=True)
+                print("{}, {} ;".format(self.rowbuf[ridx, col:col + colblk].shape,
+                                        dataRow[idx:idx + colblk].shape), end='', flush=True)
+                self.rowbuf[ridx, col:col + colblk] = dataRow[idx:idx + colblk]
+                idx = idx + colblk
+            else: # Quadrants F or G
+                print("({},{}:{}) <- {}:{}, ".format(ridx, col - VISSize.COLS_HALF - colblk + 1,
+                                                     col - VISSize.COLS_HALF + 1, idx, idx + colblk), end='', flush=True)
+                print("{}, {} ;".format(self.rowbuf[ridx, col - VISSize.COLS_HALF - colblk + 1:col - VISSize.COLS_HALF + 1].shape,
+                                        dataRow[idx:idx + colblk].shape), end='', flush=True)
+                self.rowbuf[ridx, col - VISSize.COLS_HALF - colblk + 1:col - VISSize.COLS_HALF + 1] = dataRow[idx:idx + colblk]
+                idx = idx + colblk
+        print('')
+
+        self.storedBlocks = self.storedBlocks + 1
+
+        if (self.storedBlocks == 4) or (self.storedBlocks == 2 and self.is2RowArea):
+            self.storeBufferedDataIntoImage(ccdn, row, col, self.rowbuf)
+
+    def storeBufferedDataIntoImage(self, ccd, rw, cl, data):
+        """
+        Move data from row buffer (of 2 or 4 rows) into final image
+        :param ccdn: the CCD numbers2
+        :param rw: the row in the CCD
+        :param cl: the column in the CCD
+        :param data: the data (already uncompressed)
+        :return:
+        """
+        rows = (4 if not self.is2RowArea else 2)
+        rowsRange = range(0, rows)
+
+        print('Move blocks: ', end='', flush=True)
+        for drow in rowsRange:
+            if self.isQuadE: # Quadrant E
+                self.images[ccd][rw + drow, 0:VISSize.COLS_HALF] = data[drow, :]
+                print('Row {} ({}px => ({}, 0:{})  '.format(drow, VISSize.COLS_HALF, rw + drow,
+                                                            VISSize.COLS_HALF), end='', flush=True)
+            elif self.isQuadF:  # Quadrant F
+                self.images[ccd][rw + drow, -1:-VISSize.COLS_HALF - 1:-1] = data[drow, :]
+                print('Row {} ({}px => ({}, -1:{})  '.format(drow, VISSize.COLS_HALF, rw + drow,
+                                                             -VISSize.COLS_HALF - 1), end='', flush=True)
+            elif self.isQuadG:  # Quadrant G
+                self.images[ccd][rw - drow, -1:-VISSize.COLS_HALF - 1:-1] = data[drow, :]
+                print('Row {} ({}px => ({}, -1:{})  '.format(drow, VISSize.COLS_HALF, rw - drow,
+                                                             -VISSize.COLS_HALF - 1), end='', flush=True)
+            elif self.isQuadH:  # Quadrant H
+                self.images[ccd][rw - drow, 0:VISSize.COLS_HALF] = data[drow, :]
+                print('Row {} ({}px => ({}, 0:{})  '.format(drow, VISSize.COLS_HALF, rw - drow,
+                                                            VISSize.COLS_HALF), end='', flush=True)
+        print('', flush=True)
+
+        self.storedBlocks = 0
+
     def process_input(self):
         """
         Run the processing of the input file
@@ -157,6 +290,13 @@ class RAW_to_VIS_Processor:
         """
         n = 0
         nn = []
+        self.comprType = ComprType.NO_COMPR
+        self.comprPrs = 16
+
+        # For compression with reordering
+        self.rowbuf = np.zeros((4, VISSize.COLS_HALF), dtype=np.uint16)
+        print('{}'.format(self.rowbuf.shape), flush=True)
+        self.storedBlocks = 0
 
         with open(self.input_file, 'rb') as fh:
             while True:
@@ -169,6 +309,13 @@ class RAW_to_VIS_Processor:
                     # Header packet
                     if self.visHdr.read(fh):
                         logger.debug(self.visHdr.info())
+                        logger.info(f'Read {self.visHdr.size} bytes of main header')
+
+                        self.comprType = 1 #self.visHdr.compressionInfo.compr_type
+                        self.comprPrs = self.visHdr.compressionInfo.compr_prs
+                        self.isCompressed = self.visHdr.compressionInfo.compr_type != ComprType.NO_COMPR.value
+                        self.mustReorder = self.visHdr.compressionInfo.compr_type == ComprType.WITH_REORDER_121.value
+
                         self.npackets_hdr = self.npackets_hdr + 1
                         self.nbytes = self.nbytes + self.visHdr.size
                     else:
@@ -179,6 +326,8 @@ class RAW_to_VIS_Processor:
                     # Science packet
                     if not self.visSciPck.read(fh): break
 
+                    logger.debug(self.visSciPck.info())
+
                     n = n + 1
                     self.npackets = self.npackets + 1
                     self.nbytes = self.nbytes + self.visSciPck.size
@@ -187,23 +336,42 @@ class RAW_to_VIS_Processor:
                     ccdn = self.visSciPck.ccdId.ccd_id
                     if ccdn >= len(self.images):
                         logger.info(f'Reading data for CCD {ccdn}')
-                        self.images.append(np.zeros((VISSize.ROWS, VISSize.COLS), dtype=int))
+                        self.images.append(np.zeros((VISSize.ROWS, VISSize.COLS), dtype=np.uint16))
                         self.ccd_number.append(ccdn + 1)
 
                     row = self.visSciPck.ccdId.row
                     col = self.visSciPck.ccdId.col
-                    dataRow = np.array(self.row_unpacker.unpack(self.visSciPck.data.binstr))
+                    bindata = self.visSciPck.binarray
+                    bindataLen = self.visSciPck.dataLength.data
 
-                    if col == 0:
-                        if row < VISSize.ROWS_HALF:
-                            self.images[ccdn][row,0:VISSize.COLS_HALF] = dataRow # Q1: E
-                        else:
-                            self.images[ccdn][row,0:VISSize.COLS_HALF] = dataRow # Q4: H
+                    self.defineQuadrant(row, col)
+
+                    s = '{:>06s}{:>013s}{:>013s}{:>016s}'.format(\
+                        bin(self.visSciPck.ccdId.ccd_id)[2:], bin(row)[2:], bin(col)[2:], bin(bindataLen)[2:])
+
+                    # print(('CCD {} {:4d} {:4d} , {:5d} bytes => {:>06s}|{:>013s}|{:>013s} ' +
+                    #        '=> {:8s} {:8s} {:8s} {:8s} {:8s} {:8s}').format(\
+                    #       self.visSciPck.ccdId.ccd_id, row, col, bindataLen,
+                    #       bin(self.visSciPck.ccdId.ccd_id)[2:], bin(row)[2:], bin(col)[2:],
+                    #       s[:8],s[8:16],s[16:24],s[24:32],s[32:40],s[40:]))
+
+                    print(('CCD {} {:4d} {:4d} => ').\
+                        format(self.visSciPck.ccdId.ccd_id, row, col), end='', flush=True)
+
+                    if not self.isCompressed:
+
+                        dataRow = np.array(self.row_unpacker.unpack(bindata), dtype=np.uint8)
+                        self.storeDataAtImageDirect(ccdn, row, col, dataRow)
+
                     else:
-                        if row < VISSize.ROWS_HALF:
-                            self.images[ccdn][row,-1:-VISSize.COLS_HALF-1:-1] = dataRow # Q2: F
+
+                        dataRow = self.uncompressData(bindata)
+                        pprint(dataRow.shape)
+                        if self.mustReorder:
+                            self.storeDataAtImageReordered(ccdn, row, col, dataRow)
                         else:
-                            self.images[ccdn][row,-1:-VISSize.COLS_HALF-1:-1] = dataRow # Q3: G
+                            self.storeDataAtImageDirect(ccdn, row, col, dataRow)
+
                 else:
                     if word != -1:
                         logger.debug(f'Read from file: 0x{word:08X}')
@@ -311,7 +479,7 @@ class RAW_to_VIS_Processor:
                          overwrite=True)
 
         elif self.output_type == OutputType.FULL_FPA:
-            logger.warn('Full-FPA output format still not supported')
+            logger.warning('Full-FPA output format still not supported')
 
         else:
             logger.error('No output will be produced')

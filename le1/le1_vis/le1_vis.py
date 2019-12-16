@@ -15,9 +15,11 @@ from __future__ import unicode_literals
 import os
 import sys
 import logging
+import codecs
 
 from pprint import pprint
 from struct import unpack
+from array import array
 
 from basic import Encoded
 from le1_base import SEQUENCE_ID_NAME, \
@@ -73,7 +75,7 @@ class VISSize:
 
     CHARGE_INJEC_STRUCT_ROWS = 20
     QUAD_CHARGE_INJEC_STRUCT_ROWS = CHARGE_INJEC_STRUCT_ROWS // 2
-    
+
 
 class RAWVISHeader:
     """
@@ -173,17 +175,17 @@ class RAWVISHeader:
     def read(self, fh):
         """
         Read the packed data header from the file handler
-        :param fhdl: The file handler
+        :param fh: The file handler
         :return: True if unpacking is OK, False otherwise
         """
         bindata = fh.read(self.size)
-        logger.debug(bindata)
+        #logger.debug(bindata)
         return self.unpack(bindata)
 
     def write(self, fh):
         """
         Read the packed data header from the file handler
-        :param fhdl: The file handler
+        :param fh: The file handler
         :return: True if unpacking is OK, False otherwise
         """
         try:
@@ -314,7 +316,7 @@ class RAWVISHeader_prev(RAWVISHeader):
                        self.operationId.data,
                        self.compressionInfo,
                        self.startTime,
-                       self.exposureDuration,
+                       '<exp.dur>', #self.exposureDuration,
                        self.imageSize,
                        self.verticalStart.data,
                        self.verticalEnd.data,
@@ -516,12 +518,9 @@ class RAWVISSciDataPacket:
         :param bindata: Binary data stream
         :return: True if unpacking is OK, False otherwise
         """
-        sizeOfData = self.dataLength.data
-        self.data = Encoded('Data', '>{}B'.format(sizeOfData), sizeOfData)
         try:
             nbytes = 0
-            for fld in [self.data,
-                        self.crc16Data,
+            for fld in [self.crc16Data,
                         self.spaceWirePcktFtr]:
                 if fld is not None:
                     _ = fld.unpack(bindata[nbytes:nbytes+fld.nbytes])
@@ -533,10 +532,9 @@ class RAWVISSciDataPacket:
     def read(self, fh):
         """
         Read the packed data header from the file handler
-        :param fhdl: The file handler
+        :param fh: The file handler
         :return: True if unpacking is OK, False otherwise
         """
-
         bindata = fh.read(self.sizeHdr)
         self.rawdata = bindata
         if not self.unpackHdr(bindata):
@@ -546,15 +544,31 @@ class RAWVISSciDataPacket:
             fh.seek(-self.sizeHdr, 1)
             self.size = 0
             return False
+
         self.size = self.sizeHdr + self.sizeFtr + self.dataLength.data
-        bindata = fh.read(self.sizeFtr + self.dataLength.data)
+
+        bindata = fh.read(self.dataLength.data)
+        self.binarray = array('B', bindata)
         self.rawdata = self.rawdata + bindata
+
+        bindata = fh.read(self.sizeFtr)
+        self.rawdata = self.rawdata + bindata
+
+        self.data = Encoded('Data', '{}B'.format(self.dataLength.data), self.dataLength.data)
+        self.data.set(self.binarray)
+
+        # pprint([self.size, self.sizeHdr, self.dataLength.data, self.sizeFtr])
+        # pprint(len(self.rawdata))
+        # pprint(codecs.encode(self.rawdata, 'hex'))
+        # pprint(len(self.binarray))
+        # pprint(self.binarray)
+
         return self.unpackData(bindata)
 
     def write(self, fh):
         """
         Read the packed data header from the file handler
-        :param fhdl: The file handler
+        :param fh: The file handler
         :return: True if unpacking is OK, False otherwise
         """
         try:
