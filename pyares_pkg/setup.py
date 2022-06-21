@@ -17,7 +17,7 @@ setup(
                       'protobuf == 3.0.0',
                       'pyarrow == 0.9.0',
                       'pandas ==0.20.3 ',
-                      'numpy == 1.14.5'],
+                      'numpy == 1.22.0'],
     #exclude_package_data={'pyares':['data/*', 'conf/*']}
     #package_data={'pyares':['*']},# 'conf':['*.ini']}, #
     #package_data={'data':['venv.zip', 'pyares.pkl'], 'conf': ['pyares_conf.ini']}, #
