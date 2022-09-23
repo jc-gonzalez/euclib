@@ -14,7 +14,7 @@ setup(
     python_requires='>=3.3,<4',
     install_requires=['happybase == 1.1.0',
                       'PyMySQL == 0.8.0',
-                      'protobuf == 3.0.0',
+                      'protobuf == 3.18.3',
                       'pyarrow == 0.9.0',
                       'pandas ==0.20.3 ',
                       'numpy == 1.14.5'],
